@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Facial - Sistema de Controle de Funcionários</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+            min-height: 700px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header-section p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .camera-section {
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .camera-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        /* Indicador de face detectada */
+        .face-detection-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 10;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .face-detection-indicator.active {
+            background: rgba(34, 197, 94, 0.9);
+            display: block;
+        }
+        
+        .face-detection-indicator.waiting {
+            background: rgba(59, 130, 246, 0.9);
+            display: block;
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            border-radius: 15px;
+            background: #000;
+        }
+        
+        /* Círculo de detecção removido - usando toda a área da câmera */
+        
+        .camera-status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        
+        .camera-status.success {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(5, 150, 105, 0.3);
+        }
+        
+        .camera-status.error {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+        
+        .camera-status.warning {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(217, 119, 6, 0.3);
+        }
+        
+        /* STATUS AUTOMÁTICO */
+        .auto-status-section {
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .auto-status-indicator {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            border: 2px solid rgba(37, 99, 235, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .auto-status-indicator.detecting {
+            background: rgba(217, 119, 6, 0.1);
+            color: var(--warning-color);
+            border-color: rgba(217, 119, 6, 0.3);
+            animation: pulse 1s infinite;
+        }
+        
+        .auto-status-indicator.processing {
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--success-color);
+            border-color: rgba(5, 150, 105, 0.3);
+        }
+        
+        .auto-status-indicator.error {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--danger-color);
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+        
+        .auto-timer {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: rgba(217, 119, 6, 0.2);
+            color: var(--warning-color);
+            border: 1px solid rgba(217, 119, 6, 0.4);
+            margin-top: 8px;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .buttons-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .btn {
+            margin: 5px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #047857 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #b45309 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #475569 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .footer-section {
+            background: var(--light-color);
+            padding: 15px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .header-section h1 {
+                font-size: 1.5rem;
+            }
+            
+            .camera-section {
+                padding: 20px;
+            }
+            
+            .camera-overlay {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .auto-status-section {
+                margin: 10px 0;
+            }
+            
+            .auto-status-indicator {
+                font-size: 0.9rem;
+                padding: 10px 16px;
+            }
+        }
+        
+        /* Modo Kiosk */
+        .kiosk-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            background: white;
+            overflow: hidden;
+        }
+        
+        .kiosk-mode .main-container {
+            max-width: none;
+            width: 100%;
+            height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        
+        .kiosk-mode .camera-container {
+            max-width: 800px;
+            margin: 20px auto;
+        }
+        
+        .kiosk-mode .auto-status-section {
+            margin: 30px 0;
+        }
+        
+        .kiosk-mode .auto-status-indicator {
+            font-size: 1.3rem;
+            padding: 15px 25px;
+        }
+        
+        .kiosk-mode .auto-timer {
+            font-size: 1.1rem;
+            padding: 10px 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1><i class="fas fa-camera me-3"></i>Acesso Facial</h1>
+            <p>Sistema de Controle de Acesso de Funcionários</p>
+        </div>
+        
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <!-- Status da Câmera -->
+            <div id="cameraStatus" class="camera-status warning">
+                <i class="fas fa-camera me-2"></i>
+                Iniciando câmera...
+            </div>
+            
+            <!-- Container da Câmera -->
+            <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                
+                <!-- Indicador de Face Detectada -->
+                <div id="faceDetectionIndicator" class="face-detection-indicator">
+                    <i class="fas fa-user me-1"></i>
+                    <span id="faceDetectionText">Aguardando...</span>
+                </div>
+                
+                <!-- Botão de Permissão da Câmera (visível quando necessário) -->
+                <div id="cameraPermission" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                    <i class="fas fa-lock fa-2x mb-3"></i>
+                    <h5>Permissão da Câmera Necessária</h5>
+                    <p>Clique no botão abaixo para permitir o acesso à câmera</p>
+                    <button class="btn btn-primary" onclick="solicitarPermissaoCamera()">
+                        <i class="fas fa-camera me-2"></i>Permitir Câmera
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Status Automático -->
+            <div class="auto-status-section">
+                <div class="auto-status-indicator" id="autoStatusIndicator">
+                    <i class="fas fa-eye me-2"></i>
+                    <span id="autoStatusText">Aguardando face...</span>
+                </div>
+                <div class="auto-timer" id="autoTimer" style="display: none;">
+                    <i class="fas fa-clock me-2"></i>
+                    <span id="timerText">3</span>
+                </div>
+            </div>
+            
+            <!-- Botões de Controle -->
+            <div class="buttons-section">
+                <button type="button" class="btn btn-warning" id="btnAlternarCamera">
+                    <i class="fas fa-sync me-2"></i>
+                    ALTERNAR CÂMERA
+                </button>
+                <button type="button" class="btn btn-danger ms-2" id="btnToggleAuto">
+                    <i class="fas fa-stop me-2"></i>
+                    DESATIVAR DETECÇÃO
+                </button>
+                
+                <button type="button" class="btn btn-secondary" id="btnVoltarManual">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    VOLTAR AO MANUAL
+                </button>
+                
+                <button type="button" class="btn btn-primary" id="btnTelaCheia">
+                    <i class="fas fa-expand me-2"></i>
+                    TELA CHEIA
+                </button>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer-section">
+            <div class="row">
+                <div class="col-md-4">
+                    <i class="fas fa-clock me-1"></i>
+                    <span id="currentTime">--:--</span>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-calendar me-1"></i>
+                    <span id="currentDate">--/--/----</span>
+                </div>
+                <div class="col-md-4">
+                    <i class="fas fa-server me-1"></i>
+                    <span>Sistema Online</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modais -->
+    
+    <!-- Modal de Sucesso -->
+    <div class="modal fade" id="sucessoModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle me-2"></i>Acesso Registrado
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="dadosFuncionario">
+                        <!-- Dados do funcionário serão inseridos aqui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Erro -->
+    <div class="modal fade" id="erroModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Erro no Acesso
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="mensagemErro">
+                        <!-- Mensagem de erro será inserida aqui -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variáveis globais
+        let stream = null;
+        let videoElement = document.getElementById('video');
+        let canvasElement = document.getElementById('canvas');
+        let cameraStatus = document.getElementById('cameraStatus');
+        let isProcessing = false;
+        
+        // Variáveis para reconhecimento automático
+        let autoDetectionInterval = null;
+        let faceDetectionInterval = null;
+        let lastDetectionTime = 0;
+        let detectionCooldown = 3000; // 3 segundos entre tentativas
+        let autoDetectionEnabled = true; // ATIVADO por padrão
+        let faceDetected = false;
+        let processingTimer = null;
+        
+        // Variáveis para controle de tentativas
+        let consecutiveFailures = 0;
+        let maxConsecutiveFailures = 5; // Parar após 5 falhas consecutivas
+        let lastSuccessfulDetection = 0;
+        let isAniversarioAtivo = false; // Controle especial para aniversário
+        let isWaitingPeriod = false; // Controle de tempo de espera entre registros
+        
+        // Função para tocar som de erro
+        function tocarSomErro() {
+            try {
+                const audio = new Audio('/static/error.wav');
+                audio.play();
+            } catch (error) {
+                console.log('Erro ao tocar som:', error);
+            }
+        }
+        
+        // Função para mostrar modal de sucesso com fechamento automático
+        function mostrarModalSucessoAuto() {
+            const modal = new bootstrap.Modal(document.getElementById('sucessoModal'));
+            modal.show();
+            
+            // Ativar período de espera
+            isWaitingPeriod = true;
+            
+            // Parar detecção automática durante o tempo de espera
+            if (autoDetectionEnabled) {
+                pararDetecaoAutomatica();
+                atualizarStatusAutomatico('waiting', 'Acesso registrado - Aguarde 15s...');
+            }
+            
+            // Fechar automaticamente após 3 segundos (tempo para leitura)
+            setTimeout(() => {
+                modal.hide();
+                
+                // Aguardar mais 12 segundos antes de reativar detecção (total 15s)
+                setTimeout(() => {
+                    isWaitingPeriod = false; // Desativar período de espera
+                    if (autoDetectionEnabled) {
+                        iniciarDetecaoAutomatica();
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                    }
+                }, 12000);
+            }, 3000);
+        }
+        
+        // Função especial para aniversariantes (tempo extra)
+        function mostrarModalAniversarioAuto() {
+            isAniversarioAtivo = true; // Marcar aniversário ativo
+            isWaitingPeriod = true; // Ativar período de espera
+            
+            const modal = new bootstrap.Modal(document.getElementById('sucessoModal'));
+            modal.show();
+            
+            // Parar detecção automática durante aniversário
+            if (autoDetectionEnabled) {
+                pararDetecaoAutomatica();
+                atualizarStatusAutomatico('waiting', 'Aniversário! Aguarde 15s...');
+            }
+            
+            // Fechar automaticamente após 4 segundos (tempo ideal para aniversário)
+            setTimeout(() => {
+                modal.hide();
+                isAniversarioAtivo = false; // Marcar aniversário inativo
+                
+                // Aguardar mais 11 segundos antes de reativar detecção (total 15s)
+                setTimeout(() => {
+                    isWaitingPeriod = false; // Desativar período de espera
+                    if (autoDetectionEnabled) {
+                        iniciarDetecaoAutomatica();
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                    }
+                }, 11000);
+            }, 4000);
+        }
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarDataHora();
+            setInterval(atualizarDataHora, 1000);
+            
+            // Inicializar câmera
+            inicializarCamera();
+            
+            // Event listeners
+            document.getElementById('btnAlternarCamera').addEventListener('click', alternarCamera);
+            document.getElementById('btnToggleAuto').addEventListener('click', toggleDetecaoAutomatica);
+            document.getElementById('btnVoltarManual').addEventListener('click', voltarAoManual);
+            document.getElementById('btnTelaCheia').addEventListener('click', toggleTelaCheia);
+        });
+        
+        // Função para atualizar data e hora
+        function atualizarDataHora() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('pt-BR');
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('pt-BR');
+        }
+        
+        // Função para inicializar câmera
+        async function inicializarCamera() {
+            try {
+                cameraStatus.className = 'camera-status warning';
+                cameraStatus.innerHTML = '<i class="fas fa-camera me-2"></i>Iniciando câmera...';
+                
+                const constraints = {
+                    video: {
+                        width: { ideal: 480, max: 640 },
+                        height: { ideal: 360, max: 480 },
+                        facingMode: 'user',
+                        frameRate: { ideal: 15, max: 30 }
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                
+                videoElement.onloadedmetadata = function() {
+                    cameraStatus.className = 'camera-status success';
+                    cameraStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Câmera ativa';
+                    
+                    // Iniciar detecção automática inteligente por padrão
+                    iniciarDetecaoAutomatica();
+                    atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                };
+                
+            } catch (error) {
+                console.error('Erro ao acessar câmera:', error);
+                cameraStatus.className = 'camera-status error';
+                cameraStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Erro ao acessar câmera';
+                
+                // Mostrar modal de erro
+                const mensagemErro = document.getElementById('mensagemErro');
+                mensagemErro.innerHTML = '<h5 class="text-danger">Erro ao acessar câmera</h5><p>Verifique as permissões do navegador.</p>';
+                const modal = new bootstrap.Modal(document.getElementById('erroModal'));
+                modal.show();
+                setTimeout(() => { modal.hide(); }, 2500);
+            }
+        }
+        
+        // Função para alternar câmera
+        async function alternarCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            try {
+                const constraints = {
+                    video: {
+                        width: { ideal: 480, max: 640 },
+                        height: { ideal: 360, max: 480 },
+                        facingMode: videoElement.srcObject.getVideoTracks()[0].getSettings().facingMode === 'user' ? 'environment' : 'user',
+                        frameRate: { ideal: 15, max: 30 }
+                    }
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                
+                cameraStatus.className = 'camera-status success';
+                cameraStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>Câmera alternada';
+                
+            } catch (error) {
+                console.error('Erro ao alternar câmera:', error);
+                cameraStatus.className = 'camera-status error';
+                cameraStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Erro ao alternar câmera';
+            }
+        }
+        
+        // Função para voltar ao modo manual
+        function voltarAoManual() {
+            try {
+                // Parar detecção automática
+                pararDetecaoAutomatica();
+                
+                // Parar a câmera se estiver ativa
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Redirecionar para página principal
+                window.location.href = '/';
+                
+            } catch (error) {
+                console.error('Erro ao voltar:', error);
+            }
+        }
+        
+        // Função para toggle tela cheia
+        function toggleTelaCheia() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    document.body.classList.add('kiosk-mode');
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    document.body.classList.remove('kiosk-mode');
+                });
+            }
+        }
+        
+        // Função para iniciar detecção automática
+        function iniciarDetecaoAutomatica() {
+            console.log('🤖 Iniciando detecção automática...');
+            
+            // Parar qualquer detecção anterior
+            if (faceDetectionInterval) {
+                clearInterval(faceDetectionInterval);
+            }
+            
+            // Iniciar detecção a cada 500ms (otimizado para performance)
+            faceDetectionInterval = setInterval(() => {
+                detectarFaceAutomaticamente();
+            }, 500);
+            
+            // Atualizar status inicial
+            atualizarStatusAutomatico('waiting', 'Aguardando face...');
+            
+            console.log('✅ Detecção automática iniciada');
+        }
+        
+        // Função para parar detecção automática
+        function pararDetecaoAutomatica() {
+            console.log('🛑 Parando detecção automática...');
+            
+            if (faceDetectionInterval) {
+                clearInterval(faceDetectionInterval);
+                faceDetectionInterval = null;
+            }
+            
+            if (processingTimer) {
+                clearInterval(processingTimer);
+                processingTimer = null;
+            }
+            
+            faceDetected = false;
+            isProcessing = false;
+            
+            console.log('✅ Detecção automática parada');
+        }
+        
+        // Função para detectar face automaticamente (usando API do backend)
+        async function detectarFaceAutomaticamente() {
+            if (!videoElement || !videoElement.videoWidth || isProcessing || !autoDetectionEnabled || isAniversarioAtivo) {
+                return;
+            }
+            
+            try {
+                // Capturar frame do vídeo
+                const context = canvasElement.getContext('2d');
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+                context.drawImage(videoElement, 0, 0);
+                
+                // Converter para base64 com qualidade reduzida
+                const imagemBase64 = canvasElement.toDataURL('image/jpeg', 0.6);
+                
+                // Enviar para API de detecção de face
+                const response = await fetch('/api/detectar_face', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        imagem: imagemBase64
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Verificar se há face detectada
+                if (data.success && data.detecao.tem_face) {
+                    // Face detectada - verificar se está bem posicionada
+                    if (data.detecao.face_centralizada && data.detecao.tamanho_adequado) {
+                        // Face bem posicionada - iniciar captura
+                        if (!faceDetected) {
+                            faceDetected = true;
+                            consecutiveFailures = 0;
+                            lastSuccessfulDetection = Date.now();
+                            
+                            console.log('✅ Face detectada e bem posicionada - Iniciando captura...');
+                            atualizarStatusAutomatico('detecting', 'Face detectada! Capturando...');
+                            atualizarIndicadorFace('active', 'Face Detectada!');
+                            
+                            // Aguardar estabilização antes de processar (reduzido)
+                            setTimeout(() => {
+                                if (faceDetected && !isProcessing) {
+                                    capturarEReconhecerAutomatico();
+                                }
+                            }, 300);
+                        }
+                    } else {
+                        // Face detectada mas não bem posicionada
+                        if (faceDetected) {
+                            faceDetected = false;
+                            atualizarStatusAutomatico('waiting', 'Posicione o rosto no centro...');
+                            atualizarIndicadorFace('waiting', 'Posicione no centro');
+                        } else {
+                            atualizarStatusAutomatico('waiting', 'Posicione o rosto no centro...');
+                            atualizarIndicadorFace('waiting', 'Posicione no centro');
+                        }
+                    }
+                } else {
+                    // Nenhuma face detectada
+                    if (faceDetected) {
+                        faceDetected = false;
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                        atualizarIndicadorFace('', '');
+                    } else {
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                        atualizarIndicadorFace('', '');
+                    }
+                    
+                    consecutiveFailures++;
+                    
+                    // Pausar detecção se muitas tentativas sem face
+                    if (consecutiveFailures >= maxConsecutiveFailures) {
+                        console.log('🛑 Muitas tentativas sem face, pausando detecção por 5 segundos');
+                        pararDetecaoAutomatica();
+                        setTimeout(() => {
+                            consecutiveFailures = 0;
+                            iniciarDetecaoAutomatica();
+                        }, 5000);
+                        return;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Erro na detecção automática:', error);
+                consecutiveFailures++;
+            }
+        }
+        
+        // Função para atualizar status automático
+        function atualizarStatusAutomatico(status, texto) {
+            const indicator = document.getElementById('autoStatusIndicator');
+            const text = document.getElementById('autoStatusText');
+            const timer = document.getElementById('autoTimer');
+            const timerText = document.getElementById('timerText');
+            
+            if (indicator) {
+                indicator.className = `auto-status-indicator ${status}`;
+            }
+            if (text) {
+                text.textContent = texto;
+            }
+            
+            if (status === 'processing') {
+                if (timer) timer.style.display = 'inline-block';
+                if (timerText) timerText.textContent = '3';
+            } else {
+                if (timer) timer.style.display = 'none';
+            }
+        }
+        
+        // Função para atualizar indicador visual de face detectada
+        function atualizarIndicadorFace(status, texto) {
+            const indicator = document.getElementById('faceDetectionIndicator');
+            const text = document.getElementById('faceDetectionText');
+            
+            if (indicator && text) {
+                indicator.className = `face-detection-indicator ${status}`;
+                text.textContent = texto;
+                
+                if (status === 'active') {
+                    indicator.style.display = 'block';
+                } else if (status === 'waiting') {
+                    indicator.style.display = 'block';
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
+        }
+        
+        // Função para capturar e reconhecer automaticamente
+        async function capturarEReconhecerAutomatico() {
+            if (isProcessing || isAniversarioAtivo || isWaitingPeriod) return;
+            
+            // Verificação adicional: só processar se ainda há face detectada
+            if (!faceDetected) {
+                console.log('🛑 Face não detectada, cancelando processamento');
+                return;
+            }
+            
+            // Verificação extra: analisar a imagem novamente antes de processar
+            try {
+                const context = canvasElement.getContext('2d');
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+                context.drawImage(videoElement, 0, 0);
+                
+                const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                const data = imageData.data;
+                
+                // Verificação rápida: se a imagem está muito escura ou vazia, não processar
+                let totalBrightness = 0;
+                let validPixels = 0;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const brightness = (r + g + b) / 3;
+                    
+                    if (brightness > 30) { // Pixel não muito escuro
+                        totalBrightness += brightness;
+                        validPixels++;
+                    }
+                }
+                
+                const avgBrightness = validPixels > 0 ? totalBrightness / validPixels : 0;
+                const validPixelRatio = validPixels / (data.length / 4);
+                
+                console.log(`🔍 Verificação pré-processamento: brilho médio=${avgBrightness.toFixed(1)}, pixels válidos=${(validPixelRatio*100).toFixed(1)}%`);
+                
+                // Se a imagem está muito escura ou tem poucos pixels válidos, não processar
+                if (avgBrightness < 50 || validPixelRatio < 0.1) {
+                    console.log('🛑 Imagem muito escura ou vazia, cancelando processamento');
+                    faceDetected = false;
+                    atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                    return;
+                }
+                
+            } catch (error) {
+                console.error('Erro na verificação pré-processamento:', error);
+                return;
+            }
+            
+            isProcessing = true;
+            atualizarStatusAutomatico('processing', 'Processando reconhecimento...');
+            
+            // Timer visual
+            let countdown = 2;
+            const timerText = document.getElementById('timerText');
+            
+            processingTimer = setInterval(() => {
+                countdown--;
+                if (timerText) timerText.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(processingTimer);
+                    processingTimer = null;
+                }
+            }, 1000);
+            
+            try {
+                // Capturar frame final
+                const context = canvasElement.getContext('2d');
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+                context.drawImage(videoElement, 0, 0);
+                
+                const imagemBase64 = canvasElement.toDataURL('image/jpeg', 0.7);
+                
+                // Enviar para reconhecimento
+                const response = await fetch('/registrar_acesso_facial', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        imagem: imagemBase64
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('✅ Acesso facial registrado:', data);
+                    
+                    // Reset contadores de falha
+                    consecutiveFailures = 0;
+                    lastSuccessfulDetection = Date.now();
+                    
+                    // Mostrar modal de sucesso
+                    const dadosFuncionario = document.getElementById('dadosFuncionario');
+                    dadosFuncionario.innerHTML = `
+                        <h4 class="text-success mb-3">${data.funcionario.nome}</h4>
+                        <div class="row text-start">
+                            <div class="col-6"><strong>Departamento:</strong></div>
+                            <div class="col-6">${data.funcionario.departamento}</div>
+                            <div class="col-6"><strong>Cargo:</strong></div>
+                            <div class="col-6">${data.funcionario.cargo}</div>
+                            <div class="col-6"><strong>Empresa:</strong></div>
+                            <div class="col-6">${data.funcionario.empresa}</div>
+                            <div class="col-6"><strong>Horário:</strong></div>
+                            <div class="col-6 text-success fw-bold">${data.funcionario.hora}</div>
+                            <div class="col-6"><strong>Tipo:</strong></div>
+                            <div class="col-6 text-info">${data.funcionario.tipo_acesso}</div>
+                            <div class="col-6"><strong>Confiança:</strong></div>
+                            <div class="col-6 text-warning">${(data.funcionario.confianca * 100).toFixed(1)}%</div>
+                        </div>
+                    `;
+                    
+                    mostrarModalSucessoAuto();
+                    
+                } else {
+                    console.log('❌ Erro de acesso facial:', data);
+                    
+                    // Incrementar contador de falhas
+                    consecutiveFailures++;
+                    console.log(`❌ Falha consecutiva ${consecutiveFailures}/${maxConsecutiveFailures}`);
+                    
+                    // Mostrar modal de erro
+                    tocarSomErro();
+                    const mensagemErro = document.getElementById('mensagemErro');
+                    mensagemErro.innerHTML = `<h5 class="text-danger">${data.message}</h5>`;
+                    const modal = new bootstrap.Modal(document.getElementById('erroModal'));
+                    modal.show();
+                    setTimeout(() => { modal.hide(); }, 2500);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao processar reconhecimento:', error);
+                
+                // Incrementar contador de falhas
+                consecutiveFailures++;
+                console.log(`❌ Erro consecutivo ${consecutiveFailures}/${maxConsecutiveFailures}`);
+                
+                // Tocar som de erro
+                tocarSomErro();
+                
+                // Mostrar modal de erro
+                const mensagemErro = document.getElementById('mensagemErro');
+                mensagemErro.innerHTML = '<h5 class="text-danger">Erro ao processar reconhecimento facial</h5>';
+                
+                const modal = new bootstrap.Modal(document.getElementById('erroModal'));
+                modal.show();
+                
+                // Fechar automaticamente após 3 segundos
+                setTimeout(() => {
+                    modal.hide();
+                }, 2500);
+            } finally {
+                isProcessing = false;
+                
+                // Limpar timer de processamento
+                if (processingTimer) {
+                    clearInterval(processingTimer);
+                    processingTimer = null;
+                }
+                
+                // Verificar se deve parar detecção por muitas falhas
+                if (consecutiveFailures >= maxConsecutiveFailures) {
+                    console.log('🛑 Muitas falhas consecutivas, pausando detecção automática por 30 segundos');
+                    pararDetecaoAutomatica();
+                    atualizarStatusAutomatico('waiting', 'Pausado por muitas tentativas...');
+                    
+                    setTimeout(() => {
+                        consecutiveFailures = 0;
+                        iniciarDetecaoAutomatica();
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                    }, 12000); // 12 segundos de pausa (ultra rápido)
+                } else {
+                    // Reset para próxima detecção após 1.5 segundos (cooldown equilibrado)
+                    setTimeout(() => {
+                        faceDetected = false;
+                        atualizarStatusAutomatico('waiting', 'Aguardando face...');
+                    }, 1500);
+                }
+            }
+        }
+        
+        // Função para toggle da detecção automática
+        function toggleDetecaoAutomatica() {
+            autoDetectionEnabled = !autoDetectionEnabled;
+            const btnToggleAuto = document.getElementById('btnToggleAuto');
+            
+            if (autoDetectionEnabled) {
+                console.log('🤖 Ativando detecção inteligente...');
+                iniciarDetecaoAutomatica();
+                btnToggleAuto.innerHTML = '<i class="fas fa-stop me-2"></i>DESATIVAR DETECÇÃO';
+                btnToggleAuto.className = 'btn btn-danger ms-2';
+                atualizarStatusAutomatico('waiting', 'Aguardando face...');
+            } else {
+                console.log('🛑 Desativando detecção inteligente...');
+                pararDetecaoAutomatica();
+                btnToggleAuto.innerHTML = '<i class="fas fa-robot me-2"></i>ATIVAR DETECÇÃO INTELIGENTE';
+                btnToggleAuto.className = 'btn btn-secondary ms-2';
+                atualizarStatusAutomatico('waiting', 'Detecção desativada');
+            }
+        }
+        
+        // Função para mostrar instruções do modo automático
+        function mostrarInstrucoesModoAutomatico() {
+            const instrucoes = `
+                <div id="instrucoesModoAutomatico" style="
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0,0,0,0.9);
+                    color: white;
+                    padding: 30px;
+                    border-radius: 15px;
+                    text-align: center;
+                    z-index: 9999;
+                    max-width: 500px;
+                    font-size: 16px;
+                ">
+                    <h3>🤖 Modo Automático</h3>
+                    <p>Apenas posicione sua face na frente da câmera</p>
+                    <p>O sistema detectará automaticamente e fará o reconhecimento</p>
+                    <div style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                        <i class="fas fa-eye fa-2x text-info mb-2"></i>
+                        <p><strong>Status:</strong> Aguardando face...</p>
+                    </div>
+                    <button onclick="this.parentElement.remove();" 
+                            style="
+                                background: #667eea;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                            ">
+                        <i class="fas fa-check me-2"></i>Entendi
+                    </button>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', instrucoes);
+        }
+        
+        // Mostrar instruções após carregamento
+        window.addEventListener('load', function() {
+            setTimeout(mostrarInstrucoesModoAutomatico, 3000);
+            
+            // Tentar entrar em tela cheia automaticamente após carregamento
+            setTimeout(() => {
+                if (window.innerWidth > 1200) {
+                    toggleTelaCheia();
+                }
+            }, 5000);
+        });
+        
+        /* Função de ajuste do círculo removida - usando toda a área da câmera */
+        
+        // Verificar status do sistema periodicamente
+        setInterval(() => {
+            // Verificar se a câmera ainda está funcionando
+            if (videoElement && videoElement.readyState === 0) {
+                cameraStatus.className = 'camera-status error';
+                cameraStatus.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Câmera desconectada';
+            }
+        }, 10000);
+    </script>
+</body>
+</html> 

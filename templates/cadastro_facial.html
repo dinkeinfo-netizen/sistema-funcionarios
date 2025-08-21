@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro Facial - Sistema de Controle de Acesso</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .admin-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+        }
+        
+        .admin-content {
+            padding: 30px;
+        }
+        
+        .camera-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            border-radius: 15px;
+            background: #000;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid #059669;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .status-badge {
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .btn-action {
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .summary-card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-camera me-3"></i>Cadastro Facial</h1>
+                    <p class="mb-0">Gerenciar cadastros faciais dos funcionários</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-light btn-sm me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Voltar
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="admin-content">
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card summary-card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x mb-3"></i>
+                            <h3 class="mb-1" id="totalFuncionarios">0</h3>
+                            <p class="mb-0">Total</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card summary-card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-camera fa-2x mb-3"></i>
+                            <h3 class="mb-1" id="comFacial">0</h3>
+                            <p class="mb-0">Com Facial</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card summary-card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user-clock fa-2x mb-3"></i>
+                            <h3 class="mb-1" id="semFacial">0</h3>
+                            <p class="mb-0">Sem Facial</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card summary-card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-percentage fa-2x mb-3"></i>
+                            <h3 class="mb-1" id="percentualFacial">0%</h3>
+                            <p class="mb-0">Cobertura</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <ul class="nav nav-tabs mb-4" id="facialTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="sem-facial-tab" data-bs-toggle="tab" data-bs-target="#sem-facial" type="button" role="tab">
+                        <i class="fas fa-user-plus me-2"></i>Sem Cadastro Facial
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="com-facial-tab" data-bs-toggle="tab" data-bs-target="#com-facial" type="button" role="tab">
+                        <i class="fas fa-camera me-2"></i>Com Cadastro Facial
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content" id="facialTabsContent">
+                <!-- Tab: Sem Facial -->
+                <div class="tab-pane fade show active" id="sem-facial" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" 
+                                       id="searchSemFacial" placeholder="Buscar por nome ou registro...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Registro</th>
+                                    <th>Nome</th>
+                                    <th>Empresa</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="semFacialTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Tab: Com Facial -->
+                <div class="tab-pane fade" id="com-facial" role="tabpanel">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" 
+                                       id="searchComFacial" placeholder="Buscar por nome ou registro...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>Registro</th>
+                                    <th>Nome</th>
+                                    <th>Empresa</th>
+                                    <th>Cadastro Facial</th>
+                                    <th>Último Uso</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="comFacialTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Cadastro Facial -->
+    <div class="modal fade" id="modalCadastroFacial" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-camera me-2"></i>Cadastrar Facial
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user me-2"></i>Dados do Funcionário</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Nome:</label>
+                                <input type="text" class="form-control" id="nomeFuncionario" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Registro:</label>
+                                <input type="text" class="form-control" id="registroFuncionario" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Empresa:</label>
+                                <input type="text" class="form-control" id="empresaFuncionario" readonly>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confiancaMinima" class="form-label">Confiança Mínima:</label>
+                                <input type="range" class="form-range" id="confiancaMinima" min="0.5" max="0.9" step="0.05" value="0.6">
+                                <div class="form-text">Valor atual: <span id="confiancaValor">0.60</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-camera me-2"></i>Captura Facial</h6>
+                            <div class="camera-container">
+                                <video id="video" autoplay muted></video>
+                                <div class="camera-overlay"></div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-primary btn-action me-2" id="btnCapturar">
+                                    <i class="fas fa-camera me-2"></i>Capturar
+                                </button>
+                                <button class="btn btn-success btn-action" id="btnCadastrar" disabled>
+                                    <i class="fas fa-save me-2"></i>Cadastrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="resultadoCadastro" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let stream = null;
+        let imagemCapturada = null;
+        let funcionarioSelecionado = null;
+        
+        // Carregar dados ao iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarEstatisticas();
+            carregarFuncionariosSemFacial();
+            carregarFuncionariosComFacial();
+            
+            // Configurar slider de confiança
+            document.getElementById('confiancaMinima').addEventListener('input', function() {
+                document.getElementById('confiancaValor').textContent = this.value;
+            });
+        });
+        
+        // Função para carregar estatísticas
+        async function carregarEstatisticas() {
+            try {
+                const [responseSem, responseCom] = await Promise.all([
+                    fetch('/api/funcionarios/sem-facial'),
+                    fetch('/api/funcionarios/com-facial')
+                ]);
+                
+                const dataSem = await responseSem.json();
+                const dataCom = await responseCom.json();
+                
+                if (dataSem.success && dataCom.success) {
+                    const semFacial = dataSem.funcionarios.length;
+                    const comFacial = dataCom.funcionarios.length;
+                    const total = semFacial + comFacial;
+                    const percentual = total > 0 ? Math.round((comFacial / total) * 100) : 0;
+                    
+                    document.getElementById('totalFuncionarios').textContent = total;
+                    document.getElementById('comFacial').textContent = comFacial;
+                    document.getElementById('semFacial').textContent = semFacial;
+                    document.getElementById('percentualFacial').textContent = percentual + '%';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+        
+        // Função para carregar funcionários sem facial
+        async function carregarFuncionariosSemFacial() {
+            try {
+                const response = await fetch('/api/funcionarios/sem-facial');
+                const data = await response.json();
+                
+                if (data.success) {
+                    atualizarTabelaSemFacial(data.funcionarios);
+                } else {
+                    console.error('Erro:', data.error);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar funcionários sem facial:', error);
+            }
+        }
+        
+        // Função para carregar funcionários com facial
+        async function carregarFuncionariosComFacial() {
+            try {
+                const response = await fetch('/api/funcionarios/com-facial');
+                const data = await response.json();
+                
+                if (data.success) {
+                    atualizarTabelaComFacial(data.funcionarios);
+                } else {
+                    console.error('Erro:', data.error);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar funcionários com facial:', error);
+            }
+        }
+        
+        // Função para atualizar tabela sem facial
+        function atualizarTabelaSemFacial(funcionarios) {
+            const tbody = document.getElementById('semFacialTable');
+            tbody.innerHTML = '';
+            
+            funcionarios.forEach(func => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${func.numero_registro}</strong></td>
+                    <td>${func.nome}</td>
+                    <td>${func.empresa}</td>
+                    <td>
+                        <span class="badge ${func.ativo ? 'bg-success' : 'bg-danger'} status-badge">
+                            ${func.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="abrirModalCadastro('${func.numero_registro}', '${func.nome}', '${func.empresa}')">
+                            <i class="fas fa-camera me-1"></i>Cadastrar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Função para atualizar tabela com facial
+        function atualizarTabelaComFacial(funcionarios) {
+            const tbody = document.getElementById('comFacialTable');
+            tbody.innerHTML = '';
+            
+            funcionarios.forEach(func => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${func.numero_registro}</strong></td>
+                    <td>${func.nome}</td>
+                    <td>${func.empresa}</td>
+                    <td>${func.data_cadastro_facial || 'N/A'}</td>
+                    <td>${func.ultimo_uso || 'Nunca'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removerFacial('${func.numero_registro}', '${func.nome}')">
+                            <i class="fas fa-trash me-1"></i>Remover
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Função para abrir modal de cadastro
+        function abrirModalCadastro(numeroRegistro, nome, empresa) {
+            funcionarioSelecionado = { numeroRegistro, nome, empresa };
+            
+            document.getElementById('nomeFuncionario').value = nome;
+            document.getElementById('registroFuncionario').value = numeroRegistro;
+            document.getElementById('empresaFuncionario').value = empresa;
+            
+            // Limpar resultado anterior
+            document.getElementById('resultadoCadastro').innerHTML = '';
+            document.getElementById('btnCadastrar').disabled = true;
+            imagemCapturada = null;
+            
+            // Abrir modal
+            new bootstrap.Modal(document.getElementById('modalCadastroFacial')).show();
+            
+            // Iniciar câmera
+            iniciarCamera();
+        }
+        
+        // Função para iniciar câmera
+        async function iniciarCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Erro ao acessar câmera:', error);
+                alert('Erro ao acessar câmera. Verifique as permissões.');
+            }
+        }
+        
+        // Função para capturar imagem
+        document.getElementById('btnCapturar').addEventListener('click', function() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            imagemCapturada = canvas.toDataURL('image/jpeg');
+            document.getElementById('btnCadastrar').disabled = false;
+            
+            // Mostrar feedback
+            document.getElementById('resultadoCadastro').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>Imagem capturada com sucesso!
+                </div>
+            `;
+        });
+        
+        // Função para cadastrar facial
+        document.getElementById('btnCadastrar').addEventListener('click', async function() {
+            if (!imagemCapturada || !funcionarioSelecionado) {
+                alert('Capture uma imagem primeiro');
+                return;
+            }
+            
+            const btnCadastrar = this;
+            const btnOriginal = btnCadastrar.innerHTML;
+            btnCadastrar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+            btnCadastrar.disabled = true;
+            
+            try {
+                const confiancaMinima = parseFloat(document.getElementById('confiancaMinima').value);
+                
+                const response = await fetch('/api/funcionarios/cadastrar-facial', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        numero_registro: funcionarioSelecionado.numeroRegistro,
+                        imagem: imagemCapturada,
+                        confianca_minima: confiancaMinima
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('resultadoCadastro').innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>${data.message}
+                        </div>
+                    `;
+                    
+                    // Recarregar dados
+                    setTimeout(() => {
+                        carregarEstatisticas();
+                        carregarFuncionariosSemFacial();
+                        carregarFuncionariosComFacial();
+                        bootstrap.Modal.getInstance(document.getElementById('modalCadastroFacial')).hide();
+                    }, 2000);
+                    
+                } else {
+                    document.getElementById('resultadoCadastro').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>${data.error}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                document.getElementById('resultadoCadastro').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Erro ao cadastrar facial
+                    </div>
+                `;
+            } finally {
+                btnCadastrar.innerHTML = btnOriginal;
+                btnCadastrar.disabled = false;
+            }
+        });
+        
+        // Função para remover facial
+        async function removerFacial(numeroRegistro, nome) {
+            if (!confirm(`Tem certeza que deseja remover o cadastro facial de ${nome}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/funcionarios/remover-facial', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        numero_registro: numeroRegistro
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    carregarEstatisticas();
+                    carregarFuncionariosSemFacial();
+                    carregarFuncionariosComFacial();
+                } else {
+                    alert('Erro ao remover facial: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                alert('Erro ao remover facial');
+            }
+        }
+        
+        // Fechar câmera quando modal for fechado
+        document.getElementById('modalCadastroFacial').addEventListener('hidden.bs.modal', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        });
+        
+        // Busca em tempo real
+        document.getElementById('searchSemFacial').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#semFacialTable tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+        
+        document.getElementById('searchComFacial').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#comFacialTable tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    </script>
+</body>
+</html> 

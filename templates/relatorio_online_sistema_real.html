@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Online - Sistema Real</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: none;
+            margin-bottom: 1rem;
+        }
+        
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 0 0 15px 15px;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .sortable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .sortable::after {
+            content: ' ↕';
+            opacity: 0.5;
+            font-size: 0.8em;
+        }
+        
+        .sortable.asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        .sortable.desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            border: none;
+            padding: 1rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-offline {
+            background-color: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: none;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+        
+        .table td {
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(220, 53, 69, 0.05);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .error-message {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .auto-refresh {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.3rem 0.8rem;
+            color: white;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-chart-line text-danger me-3"></i>
+                        Relatório Online - Sistema Real
+                    </h1>
+                    <p class="mb-0 text-muted">
+                        <span class="status-indicator status-online"></span>
+                        Conectado ao sistema real • Próxima atualização em <span id="countdown">30</span> segundos
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('admin') }}" class="btn-back">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Painel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="row" id="stats-container">
+            <div class="col-md-6">
+                <div class="stats-card">
+                    <div class="stats-number" id="total-presentes">0</div>
+                    <div class="stats-label">Funcionários Presentes</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                    <div class="stats-number" id="total-saidos">0</div>
+                    <div class="stats-label">Funcionários que Saíram</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensagem de Erro -->
+        <div id="error-container" style="display: none;">
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="error-message-text"></span>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading-container" class="loading">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3">Carregando dados do sistema real...</p>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div id="content-container" style="display: none;">
+            <div class="row g-2">
+                <!-- Funcionários Presentes - Coluna Esquerda -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users me-2"></i>
+                                Funcionários Presentes
+                                <span class="badge bg-light text-dark ms-2" id="count-presentes">0</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive table-container">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="registro">Registro</th>
+                                            <th class="sortable" data-sort="nome">Nome</th>
+                                            <th class="sortable" data-sort="departamento">Departamento</th>
+                                            <th class="sortable" data-sort="acesso">Último Acesso</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="presentes-tbody">
+                                        <!-- Dados serão inseridos via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Funcionários que Saíram - Coluna Direita -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);">
+                            <h5 class="mb-0">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Funcionários que Saíram
+                                <span class="badge bg-light text-dark ms-2" id="count-saidos">0</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive table-container">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="registro">Registro</th>
+                                            <th class="sortable" data-sort="nome">Nome</th>
+                                            <th class="sortable" data-sort="departamento">Departamento</th>
+                                            <th class="sortable" data-sort="saida">Horário de Saída</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="saidos-tbody">
+                                        <!-- Dados serão inseridos via JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let countdown = 30;
+        let countdownInterval;
+        
+        // Função para carregar dados
+        async function carregarDados() {
+            try {
+                const response = await fetch('/api/relatorio-online-data');
+                const data = await response.json();
+                
+                if (data.error) {
+                    mostrarErro(data.error);
+                    return;
+                }
+                
+                // Atualizar estatísticas
+                document.getElementById('total-presentes').textContent = data.total_presentes || 0;
+                document.getElementById('total-saidos').textContent = data.total_sairam || 0;
+                document.getElementById('count-presentes').textContent = data.total_presentes || 0;
+                document.getElementById('count-saidos').textContent = data.total_sairam || 0;
+                
+                // Armazenar dados para ordenação
+                presentesData = data.presentes || [];
+                saidosData = data.sairam || [];
+                
+                // Atualizar tabelas
+                updateTable('presentes-tbody', presentesData);
+                updateTable('saidos-tbody', saidosData);
+                
+                // Configurar ordenação
+                setupSorting('presentes-tbody', presentesData);
+                setupSorting('saidos-tbody', saidosData);
+                
+                // Mostrar conteúdo e esconder loading
+                document.getElementById('loading-container').style.display = 'none';
+                document.getElementById('content-container').style.display = 'block';
+                document.getElementById('error-container').style.display = 'none';
+                
+            } catch (error) {
+                mostrarErro('Erro ao carregar dados: ' + error.message);
+            }
+        }
+        
+        // Função para mostrar erro
+        function mostrarErro(mensagem) {
+            document.getElementById('error-message-text').textContent = mensagem;
+            document.getElementById('error-container').style.display = 'block';
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('content-container').style.display = 'none';
+        }
+        
+        // Função para atualizar countdown
+        function atualizarCountdown() {
+            const countdownElement = document.getElementById('countdown');
+            if (countdownElement) {
+                countdownElement.textContent = countdown;
+            }
+            
+            if (countdown <= 0) {
+                countdown = 30;
+                carregarDados();
+            } else {
+                countdown--;
+            }
+        }
+        
+        // Variáveis para ordenação
+        let presentesData = [];
+        let saidosData = [];
+        let currentSort = { column: '', direction: '' };
+        
+        // Função para ordenar dados
+        function sortData(data, column, direction) {
+            return data.sort((a, b) => {
+                let aVal, bVal;
+                
+                // Mapear campos corretos
+                switch(column) {
+                    case 'registro':
+                        aVal = a.numero_registro || '';
+                        bVal = b.numero_registro || '';
+                        break;
+                    case 'nome':
+                        aVal = a.nome || '';
+                        bVal = b.nome || '';
+                        break;
+                    case 'departamento':
+                        aVal = a.departamento || '';
+                        bVal = b.departamento || '';
+                        break;
+                    case 'acesso':
+                        aVal = a.ultima_entrada || '';
+                        bVal = b.ultima_entrada || '';
+                        break;
+                    case 'saida':
+                        aVal = a.ultima_saida || '';
+                        bVal = b.ultima_saida || '';
+                        break;
+                    default:
+                        aVal = '';
+                        bVal = '';
+                }
+                
+                // Converter para string
+                aVal = aVal.toString();
+                bVal = bVal.toString();
+                
+                if (direction === 'asc') {
+                    return aVal.localeCompare(bVal, 'pt-BR');
+                } else {
+                    return bVal.localeCompare(aVal, 'pt-BR');
+                }
+            });
+        }
+        
+        // Função para atualizar tabela
+        function updateTable(tableId, data) {
+            const tbody = document.getElementById(tableId);
+            tbody.innerHTML = '';
+            
+            if (data && data.length > 0) {
+                data.forEach(funcionario => {
+                    const row = document.createElement('tr');
+                    if (tableId === 'presentes-tbody') {
+                        row.innerHTML = `
+                            <td><strong>${funcionario.numero_registro}</strong></td>
+                            <td>${funcionario.nome}</td>
+                            <td>${funcionario.departamento || 'N/A'}</td>
+                            <td>${funcionario.ultima_entrada || 'N/A'}</td>
+                            <td><span class="badge bg-success">Presente</span></td>
+                        `;
+                    } else {
+                        row.innerHTML = `
+                            <td><strong>${funcionario.numero_registro}</strong></td>
+                            <td>${funcionario.nome}</td>
+                            <td>${funcionario.departamento || 'N/A'}</td>
+                            <td>${funcionario.ultima_saida || 'N/A'}</td>
+                            <td><span class="badge bg-warning">Saiu</span></td>
+                        `;
+                    }
+                    tbody.appendChild(row);
+                });
+            } else {
+                const message = tableId === 'presentes-tbody' ? 'Nenhum funcionário presente' : 'Nenhum funcionário saiu';
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">${message}</td></tr>`;
+            }
+        }
+        
+        // Função para configurar ordenação
+        function setupSorting(tableId, dataArray) {
+            console.log('Configurando ordenação para:', tableId);
+            
+            // Encontrar a tabela correta
+            const tbody = document.getElementById(tableId);
+            const table = tbody.closest('table');
+            const headers = table.querySelectorAll('th.sortable');
+            
+            console.log('Headers encontrados:', headers.length);
+            
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    console.log('Cabeçalho clicado:', this.textContent);
+                    
+                    const column = this.dataset.sort;
+                    const currentDirection = this.classList.contains('asc') ? 'asc' : 
+                                          this.classList.contains('desc') ? 'desc' : '';
+                    
+                    console.log('Coluna:', column, 'Direção atual:', currentDirection);
+                    
+                    // Limpar classes de ordenação
+                    headers.forEach(h => {
+                        h.classList.remove('asc', 'desc');
+                    });
+                    
+                    // Determinar nova direção
+                    let newDirection = 'asc';
+                    if (currentDirection === 'asc') {
+                        newDirection = 'desc';
+                    }
+                    
+                    // Aplicar classe
+                    this.classList.add(newDirection);
+                    
+                    console.log('Ordenando dados...');
+                    // Ordenar dados
+                    const sortedData = sortData([...dataArray], column, newDirection);
+                    updateTable(tableId, sortedData);
+                });
+            });
+        }
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Carregar dados iniciais
+            carregarDados();
+            
+            // Iniciar countdown
+            countdownInterval = setInterval(atualizarCountdown, 1000);
+            
+            // Atualizar dados a cada 30 segundos
+            setInterval(carregarDados, 30000);
+        });
+    </script>
+</body>
+</html> 

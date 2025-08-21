@@ -1,0 +1,39 @@
+# Configuração do Caddy para Sistema de Controle de Acesso de Funcionários
+
+# Configuração HTTP (redirecionamento para HTTPS)
+:80 {
+    redir https://10.17.94.67:8444{uri} permanent
+}
+
+# Configuração HTTPS com certificados customizados
+:443 {
+    # Certificados SSL customizados
+    tls /etc/caddy/certs/server-cert.pem /etc/caddy/certs/server-key.pem
+    
+    # Proxy para aplicação Flask
+    reverse_proxy flask_acesso:8082 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Configurações de segurança
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob:; font-src 'self' data: https://cdn.jsdelivr.net;"
+    }
+    
+    # Logs
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+    
+    # Compressão
+    encode gzip
+} 

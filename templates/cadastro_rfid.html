@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro RFID - Sistema de Controle de Acesso</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content-section {
+            padding: 40px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #047857 100%);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(5, 150, 105, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #b91c1c 100%);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+        
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: 600;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        .badge {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .status-bar {
+            background: var(--light-color);
+            padding: 15px 30px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--secondary-color);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-item i {
+            color: var(--success-color);
+        }
+        
+        .time-display {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .content-section {
+                padding: 20px;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1><i class="fas fa-credit-card me-3"></i>Cadastro RFID</h1>
+            <p>Gerenciar cartões e tags RFID dos funcionários</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content-section">
+            <!-- Cadastrar Novo RFID -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Cadastrar Novo RFID
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="formCadastroRFID">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="funcionarioSelect" class="form-label">Funcionário</label>
+                                <select class="form-control" id="funcionarioSelect" required>
+                                    <option value="">Selecione um funcionário...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="codigoRFID" class="form-label">Código RFID</label>
+                                <input type="text" class="form-control" id="codigoRFID" placeholder="Digite o código RFID" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="tipoCartao" class="form-label">Tipo de Cartão</label>
+                                <select class="form-control" id="tipoCartao" required>
+                                    <option value="cartao">Cartão</option>
+                                    <option value="tag">Tag</option>
+                                    <option value="chaveiro">Chaveiro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="descricao" class="form-label">Descrição (opcional)</label>
+                                <input type="text" class="form-control" id="descricao" placeholder="Ex: Cartão principal">
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Cadastrar RFID
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Funcionários com RFID -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Funcionários com RFID Cadastrado
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Funcionário</th>
+                                    <th>Registro</th>
+                                    <th>Código RFID</th>
+                                    <th>Tipo</th>
+                                    <th>Data Cadastro</th>
+                                    <th>Último Uso</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaComRFID">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Carregando...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botão Voltar -->
+            <div class="text-center mt-4">
+                <a href="/admin" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
+                </a>
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <i class="fas fa-server"></i>
+                <span>Sistema Online</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-credit-card"></i>
+                <span>RFID: <span id="totalRFID">--</span> cadastrados</span>
+            </div>
+            <div class="status-item">
+                <i class="fas fa-clock"></i>
+                <span class="time-display" id="currentTime">--:--</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Atualizar horário em tempo real
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentTime').textContent = timeString;
+        }
+        
+        // Atualizar a cada segundo
+        setInterval(updateTime, 1000);
+        updateTime(); // Executar imediatamente
+        
+        // Carregar funcionários sem RFID
+        function carregarFuncionariosSemRFID() {
+            fetch('/api/funcionarios/sem-rfid')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('funcionarioSelect');
+                    select.innerHTML = '<option value="">Selecione um funcionário...</option>';
+                    
+                    if (data.success && data.funcionarios) {
+                        data.funcionarios.forEach(func => {
+                            const option = document.createElement('option');
+                            option.value = func.numero_registro;
+                            option.textContent = `${func.nome} (${func.numero_registro}) - ${func.departamento}`;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar funcionários:', error);
+                });
+        }
+        
+        // Carregar funcionários com RFID
+        function carregarFuncionariosComRFID() {
+            fetch('/api/funcionarios/com-rfid')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('tabelaComRFID');
+                    
+                    if (data.success && data.funcionarios && data.funcionarios.length > 0) {
+                        tbody.innerHTML = '';
+                        
+                        data.funcionarios.forEach(func => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>
+                                    <strong>${func.nome}</strong><br>
+                                    <small class="text-muted">${func.departamento} - ${func.cargo}</small>
+                                </td>
+                                <td><span class="badge bg-primary">${func.numero_registro}</span></td>
+                                <td><code>${func.codigo_rfid}</code></td>
+                                <td>
+                                    <span class="badge bg-info">${func.tipo_cartao}</span>
+                                    ${func.descricao ? `<br><small class="text-muted">${func.descricao}</small>` : ''}
+                                </td>
+                                <td>${func.data_cadastro}</td>
+                                <td>${func.data_ultimo_uso}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm" onclick="removerRFID('${func.numero_registro}', '${func.nome}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        document.getElementById('totalRFID').textContent = data.funcionarios.length;
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>Nenhum funcionário com RFID cadastrado
+                                </td>
+                            </tr>
+                        `;
+                        document.getElementById('totalRFID').textContent = '0';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar funcionários com RFID:', error);
+                    document.getElementById('tabelaComRFID').innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Erro ao carregar dados
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+        
+        // Cadastrar RFID
+        document.getElementById('formCadastroRFID').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const numeroRegistro = document.getElementById('funcionarioSelect').value;
+            const codigoRFID = document.getElementById('codigoRFID').value;
+            const tipoCartao = document.getElementById('tipoCartao').value;
+            const descricao = document.getElementById('descricao').value;
+            
+            if (!numeroRegistro || !codigoRFID) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+            
+            const data = {
+                numero_registro: numeroRegistro,
+                codigo_rfid: codigoRFID,
+                tipo_cartao: tipoCartao,
+                descricao: descricao
+            };
+            
+            fetch('/api/funcionarios/cadastrar-rfid', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('RFID cadastrado com sucesso!');
+                    document.getElementById('formCadastroRFID').reset();
+                    carregarFuncionariosSemRFID();
+                    carregarFuncionariosComRFID();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao cadastrar RFID');
+            });
+        });
+        
+        // Remover RFID
+        function removerRFID(numeroRegistro, nomeFuncionario) {
+            if (!confirm(`Tem certeza que deseja remover o RFID de ${nomeFuncionario}?`)) {
+                return;
+            }
+            
+            fetch('/api/funcionarios/remover-rfid', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    numero_registro: numeroRegistro
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('RFID removido com sucesso!');
+                    carregarFuncionariosSemRFID();
+                    carregarFuncionariosComRFID();
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao remover RFID');
+            });
+        }
+        
+        // Carregar dados iniciais
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarFuncionariosSemRFID();
+            carregarFuncionariosComRFID();
+        });
+    </script>
+</body>
+</html> 

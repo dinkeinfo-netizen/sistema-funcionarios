@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações - Sistema de Controle de Funcionários</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header-section p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .content-section {
+            padding: 30px;
+        }
+        
+        .config-card {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .config-card:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .config-card h3 {
+            color: var(--dark-color);
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .config-card p {
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+        
+        .btn-config {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-config:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn-horarios {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-feriados {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-voltar {
+            background: var(--secondary-color);
+            color: white;
+            margin-right: 10px;
+        }
+        
+        .btn-sair {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+        }
+        
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table thead th {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        
+        .badge-tipo {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .badge-nacional { background: #dc2626; color: white; }
+        .badge-estadual { background: #d97706; color: white; }
+        .badge-municipal { background: #059669; color: white; }
+        .badge-facultativo { background: #7c3aed; color: white; }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <h1><i class="fas fa-cogs me-3"></i>Configurações</h1>
+            <p>Sistema de Controle de Acesso de Funcionários</p>
+            <div class="mt-3">
+                <a href="/admin" class="btn btn-voltar">
+                    <i class="fas fa-arrow-left"></i>Voltar
+                </a>
+                <a href="/admin/logout" class="btn btn-sair">
+                    <i class="fas fa-sign-out-alt"></i>Sair
+                </a>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content-section">
+            <!-- Alert de funcionalidade -->
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Funcionalidade Implementada!</strong> As configurações do sistema agora estão disponíveis.
+            </div>
+            
+            <!-- Configurações -->
+            <div class="row">
+                <!-- Horários Padrão -->
+                <div class="col-md-6 mb-4">
+                    <div class="config-card">
+                        <h3>
+                            <i class="fas fa-clock text-primary"></i>
+                            Horários Padrão
+                        </h3>
+                        <p>Configurar horários padrão do sistema.</p>
+                        <button class="btn btn-config btn-horarios" onclick="abrirModalHorarios()">
+                            <i class="fas fa-edit"></i>Configurar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Feriados -->
+                <div class="col-md-6 mb-4">
+                    <div class="config-card">
+                        <h3>
+                            <i class="fas fa-calendar-alt text-success"></i>
+                            Feriados
+                        </h3>
+                        <p>Configurar feriados e dias especiais.</p>
+                        <button class="btn btn-config btn-feriados" onclick="abrirModalFeriados()">
+                            <i class="fas fa-edit"></i>Configurar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Horários -->
+    <div class="modal fade" id="modalHorarios" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-clock me-2"></i>Configurar Horários
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Adicionar Novo Horário</h6>
+                            <form id="formHorarios">
+                                <div class="mb-3">
+                                    <label class="form-label">Nome da Configuração</label>
+                                    <input type="text" class="form-control" id="nomeConfig" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hora de Entrada</label>
+                                        <input type="time" class="form-control" id="horaEntrada" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Hora de Saída</label>
+                                        <input type="time" class="form-control" id="horaSaida" required>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tolerância Entrada (min)</label>
+                                        <input type="number" class="form-control" id="toleranciaEntrada" value="15" min="0" max="60">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tolerância Saída (min)</label>
+                                        <input type="number" class="form-control" id="toleranciaSaida" value="15" min="0" max="60">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label">Dias da Semana</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="1" id="segunda" checked>
+                                        <label class="form-check-label" for="segunda">Segunda</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="2" id="terca" checked>
+                                        <label class="form-check-label" for="terca">Terça</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="3" id="quarta" checked>
+                                        <label class="form-check-label" for="quarta">Quarta</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="4" id="quinta" checked>
+                                        <label class="form-check-label" for="quinta">Quinta</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="5" id="sexta" checked>
+                                        <label class="form-check-label" for="sexta">Sexta</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="6" id="sabado">
+                                        <label class="form-check-label" for="sabado">Sábado</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="0" id="domingo">
+                                        <label class="form-check-label" for="domingo">Domingo</label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-save me-2"></i>Salvar
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Horários Configurados</h6>
+                            <div id="listaHorarios"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Feriados -->
+    <div class="modal fade" id="modalFeriados" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-alt me-2"></i>Configurar Feriados
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Adicionar Novo Feriado</h6>
+                            <form id="formFeriados">
+                                <div class="mb-3">
+                                    <label class="form-label">Nome do Feriado</label>
+                                    <input type="text" class="form-control" id="nomeFeriado" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Data</label>
+                                    <input type="date" class="form-control" id="dataFeriado" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Tipo</label>
+                                    <select class="form-select" id="tipoFeriado" required>
+                                        <option value="feriado_nacional">Feriado Nacional</option>
+                                        <option value="feriado_estadual">Feriado Estadual</option>
+                                        <option value="feriado_municipal">Feriado Municipal</option>
+                                        <option value="ponto_facultativo">Ponto Facultativo</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descrição (opcional)</label>
+                                    <textarea class="form-control" id="descricaoFeriado" rows="3"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save me-2"></i>Salvar
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Feriados Configurados</h6>
+                            <div id="listaFeriados"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Funções para horários
+        function abrirModalHorarios() {
+            const modal = new bootstrap.Modal(document.getElementById('modalHorarios'));
+            modal.show();
+            carregarHorarios();
+        }
+        
+        function carregarHorarios() {
+            fetch('/api/configuracoes/horarios')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lista = document.getElementById('listaHorarios');
+                        lista.innerHTML = '';
+                        
+                        data.horarios.forEach(horario => {
+                            const dias = horario.dias_semana.split(',').map(d => {
+                                const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                                return nomes[d];
+                            }).join(', ');
+                            
+                            lista.innerHTML += `
+                                <div class="card mb-2">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title">${horario.nome_config}</h6>
+                                                <p class="card-text mb-1">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        ${horario.hora_entrada} - ${horario.hora_saida}
+                                                    </small>
+                                                </p>
+                                                <p class="card-text mb-1">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-calendar me-1"></i>
+                                                        ${dias}
+                                                    </small>
+                                                </p>
+                                                <p class="card-text">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-tolerance me-1"></i>
+                                                        Tolerância: ${horario.tolerancia_entrada}min entrada, ${horario.tolerancia_saida}min saída
+                                                    </small>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                ${horario.nome_config !== 'Horário Padrão' ? 
+                                                    `<button class="btn btn-sm btn-outline-danger" onclick="excluirHorario(${horario.id})">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>` : 
+                                                    `<span class="badge badge-primary">Padrão</span>`
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar horários:', error));
+        }
+        
+        function excluirHorario(id) {
+            if (confirm('Tem certeza que deseja excluir este horário?')) {
+                fetch(`/api/configuracoes/horarios/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Horário excluído com sucesso!');
+                        carregarHorarios();
+                    } else {
+                        alert('Erro ao excluir: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir horário');
+                });
+            }
+        }
+        
+        document.getElementById('formHorarios').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const dias = [];
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                dias.push(cb.value);
+            });
+            
+            const data = {
+                nome_config: document.getElementById('nomeConfig').value,
+                hora_entrada: document.getElementById('horaEntrada').value,
+                hora_saida: document.getElementById('horaSaida').value,
+                tolerancia_entrada: parseInt(document.getElementById('toleranciaEntrada').value),
+                tolerancia_saida: parseInt(document.getElementById('toleranciaSaida').value),
+                dias_semana: dias.join(',')
+            };
+            
+            fetch('/api/configuracoes/horarios', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Horário salvo com sucesso!');
+                    document.getElementById('formHorarios').reset();
+                    carregarHorarios();
+                } else {
+                    alert('Erro ao salvar: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar horário');
+            });
+        });
+        
+        // Funções para feriados
+        function abrirModalFeriados() {
+            const modal = new bootstrap.Modal(document.getElementById('modalFeriados'));
+            modal.show();
+            carregarFeriados();
+        }
+        
+        function carregarFeriados() {
+            fetch('/api/configuracoes/feriados')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lista = document.getElementById('listaFeriados');
+                        lista.innerHTML = '';
+                        
+                        data.feriados.forEach(feriado => {
+                            const tipoClass = {
+                                'feriado_nacional': 'badge-nacional',
+                                'feriado_estadual': 'badge-estadual',
+                                'feriado_municipal': 'badge-municipal',
+                                'ponto_facultativo': 'badge-facultativo'
+                            }[feriado.tipo] || 'badge-secondary';
+                            
+                            const tipoText = {
+                                'feriado_nacional': 'Nacional',
+                                'feriado_estadual': 'Estadual',
+                                'feriado_municipal': 'Municipal',
+                                'ponto_facultativo': 'Ponto Facultativo'
+                            }[feriado.tipo] || feriado.tipo;
+                            
+                            lista.innerHTML += `
+                                <div class="card mb-2">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title">${feriado.nome}</h6>
+                                                <p class="card-text mb-1">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-calendar me-1"></i>
+                                                        ${new Date(feriado.data_feriado).toLocaleDateString('pt-BR')}
+                                                    </small>
+                                                </p>
+                                                ${feriado.descricao ? `<p class="card-text"><small class="text-muted">${feriado.descricao}</small></p>` : ''}
+                                            </div>
+                                            <div>
+                                                <span class="badge badge-tipo ${tipoClass}">${tipoText}</span>
+                                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="excluirFeriado(${feriado.id})">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar feriados:', error));
+        }
+        
+        function excluirFeriado(id) {
+            if (confirm('Tem certeza que deseja excluir este feriado?')) {
+                fetch(`/api/configuracoes/feriados/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Feriado excluído com sucesso!');
+                        carregarFeriados();
+                    } else {
+                        alert('Erro ao excluir: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao excluir feriado');
+                });
+            }
+        }
+        
+        document.getElementById('formFeriados').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const data = {
+                nome: document.getElementById('nomeFeriado').value,
+                data_feriado: document.getElementById('dataFeriado').value,
+                tipo: document.getElementById('tipoFeriado').value,
+                descricao: document.getElementById('descricaoFeriado').value
+            };
+            
+            fetch('/api/configuracoes/feriados', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Feriado salvo com sucesso!');
+                    document.getElementById('formFeriados').reset();
+                    carregarFeriados();
+                } else {
+                    alert('Erro ao salvar: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar feriado');
+            });
+        });
+    </script>
+</body>
+</html> 

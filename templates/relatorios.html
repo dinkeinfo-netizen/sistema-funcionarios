@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Sistema de Controle de Acesso</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .admin-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px;
+            overflow: hidden;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .admin-content {
+            padding: 30px;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 1px solid #dee2e6;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn-report {
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-report:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <h1><i class="fas fa-chart-bar me-3"></i>Relatórios</h1>
+            <p>Sistema de Controle de Acesso de Funcionários</p>
+            <div class="mt-3">
+                <a href="{{ url_for('admin') }}" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-arrow-left me-1"></i>Voltar
+                </a>
+                <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i>Sair
+                </a>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="admin-content">
+            <!-- Alertas -->
+            <div id="alert-container"></div>
+            
+            <div class="row">
+                <!-- Relatório Diário -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-calendar me-2"></i>Relatório Diário</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Relatório de acessos por período.</p>
+                            
+                            <div class="mb-3">
+                                <label for="data-inicio" class="form-label">Data Início:</label>
+                                <input type="date" class="form-control" id="data-inicio" value="{{ hoje }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="data-fim" class="form-label">Data Fim:</label>
+                                <input type="date" class="form-control" id="data-fim" value="{{ hoje }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="formato-diario" class="form-label">Formato:</label>
+                                <select class="form-select" id="formato-diario">
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="pdf">PDF</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn btn-primary btn-report" onclick="gerarRelatorioDiario()">
+                                <i class="fas fa-download me-2"></i>Gerar Relatório
+                                <span class="loading ms-2">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Relatório por Funcionário -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-user me-2"></i>Relatório por Funcionário</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Relatório individual por funcionário.</p>
+                            
+                            <div class="mb-3">
+                                <label for="funcionario-select" class="form-label">Funcionário:</label>
+                                <select class="form-select" id="funcionario-select">
+                                    <option value="">Carregando funcionários...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="data-inicio-func" class="form-label">Data Início:</label>
+                                <input type="date" class="form-control" id="data-inicio-func" value="{{ hoje }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="data-fim-func" class="form-label">Data Fim:</label>
+                                <input type="date" class="form-control" id="data-fim-func" value="{{ hoje }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="formato-funcionario" class="form-label">Formato:</label>
+                                <select class="form-select" id="formato-funcionario">
+                                    <option value="json">JSON</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="pdf">PDF</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn btn-success btn-report" onclick="gerarRelatorioFuncionario()">
+                                <i class="fas fa-download me-2"></i>Gerar Relatório
+                                <span class="loading ms-2">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Relatório de Presença -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-users me-2"></i>Relatório de Presença</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Lista de funcionários presentes e que saíram hoje.</p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-success"><i class="fas fa-user-check me-2"></i>Funcionários Presentes</h6>
+                                    <div id="presentes-container">
+                                        <div class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-warning"><i class="fas fa-user-times me-2"></i>Funcionários que Saíram</h6>
+                                    <div id="sairam-container">
+                                        <div class="text-center">
+                                            <i class="fas fa-spinner fa-spin"></i> Carregando...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button class="btn btn-info btn-report" onclick="atualizarRelatorioPresenca()">
+                                    <i class="fas fa-sync-alt me-2"></i>Atualizar
+                                </button>
+                                <button class="btn btn-secondary btn-report" onclick="exportarRelatorioPresenca()">
+                                    <i class="fas fa-download me-2"></i>Exportar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resultado do Relatório -->
+            <div class="row mt-4" id="resultado-container" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>Resultado do Relatório</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="resultado-conteudo"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Data atual - usar a data do servidor
+        const hoje = '{{ hoje }}'; // Data passada pelo servidor
+        document.getElementById('data-inicio').value = hoje;
+        document.getElementById('data-fim').value = hoje;
+        document.getElementById('data-inicio-func').value = hoje;
+        document.getElementById('data-fim-func').value = hoje;
+        
+        // Carregar funcionários
+        carregarFuncionarios();
+        
+        function carregarFuncionarios() {
+            fetch('/api/relatorios/funcionarios')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('funcionario-select');
+                    select.innerHTML = '<option value="">Selecione um funcionário...</option>';
+                    
+                    data.forEach(func => {
+                        const option = document.createElement('option');
+                        option.value = func.numero_registro;
+                        option.textContent = `${func.nome_completo} (${func.numero_registro}) - ${func.departamento || 'N/A'}`;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar funcionários:', error);
+                    mostrarAlerta('Erro ao carregar funcionários', 'danger');
+                });
+        }
+        
+        function gerarRelatorioDiario() {
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+            const formato = document.getElementById('formato-diario').value;
+            
+            if (!dataInicio || !dataFim) {
+                mostrarAlerta('Por favor, preencha as datas', 'warning');
+                return;
+            }
+            
+            const btn = event.target;
+            const loading = btn.querySelector('.loading');
+            
+            btn.disabled = true;
+            loading.style.display = 'inline';
+            
+            const url = `/api/relatorios/diario?data_inicio=${dataInicio}&data_fim=${dataFim}&formato=${formato}`;
+            
+            if (formato === 'csv' || formato === 'pdf') {
+                // Download direto
+                window.open(url, '_blank');
+                btn.disabled = false;
+                loading.style.display = 'none';
+                mostrarAlerta('Relatório gerado com sucesso!', 'success');
+            } else {
+                // JSON para visualização
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarResultado(data, 'Relatório Diário');
+                        btn.disabled = false;
+                        loading.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Erro ao gerar relatório:', error);
+                        mostrarAlerta('Erro ao gerar relatório', 'danger');
+                        btn.disabled = false;
+                        loading.style.display = 'none';
+                    });
+            }
+        }
+        
+        function gerarRelatorioFuncionario() {
+            const numeroRegistro = document.getElementById('funcionario-select').value;
+            const dataInicio = document.getElementById('data-inicio-func').value;
+            const dataFim = document.getElementById('data-fim-func').value;
+            const formato = document.getElementById('formato-funcionario').value;
+            
+            if (!numeroRegistro) {
+                mostrarAlerta('Por favor, selecione um funcionário', 'warning');
+                return;
+            }
+            
+            if (!dataInicio || !dataFim) {
+                mostrarAlerta('Por favor, preencha as datas', 'warning');
+                return;
+            }
+            
+            const btn = event.target;
+            const loading = btn.querySelector('.loading');
+            
+            btn.disabled = true;
+            loading.style.display = 'inline';
+            
+            const url = `/api/relatorios/funcionario?numero_registro=${numeroRegistro}&data_inicio=${dataInicio}&data_fim=${dataFim}&formato=${formato}`;
+            
+            if (formato === 'csv' || formato === 'pdf') {
+                // Download direto
+                window.open(url, '_blank');
+                btn.disabled = false;
+                loading.style.display = 'none';
+                mostrarAlerta('Relatório gerado com sucesso!', 'success');
+            } else {
+                // JSON para visualização
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarResultado(data, 'Relatório de Funcionário');
+                        btn.disabled = false;
+                        loading.style.display = 'none';
+                    })
+                    .catch(error => {
+                        console.error('Erro ao gerar relatório:', error);
+                        mostrarAlerta('Erro ao gerar relatório', 'danger');
+                        btn.disabled = false;
+                        loading.style.display = 'none';
+                    });
+            }
+        }
+        
+        function mostrarResultado(data, titulo) {
+            const container = document.getElementById('resultado-container');
+            const conteudo = document.getElementById('resultado-conteudo');
+            
+            let html = `<h6>${titulo}</h6>`;
+            
+            if (data.estatisticas) {
+                html += `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Estatísticas:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total de Acessos:</strong> ${data.estatisticas.total_acessos || 0}</li>
+                                <li><strong>Funcionários Únicos:</strong> ${data.estatisticas.funcionarios_unicos || 0}</li>
+                                <li><strong>Entradas:</strong> ${data.estatisticas.entradas || 0}</li>
+                                <li><strong>Saídas:</strong> ${data.estatisticas.saidas || 0}</li>
+                                <li><strong>Acessos Faciais:</strong> ${data.estatisticas.acessos_faciais || 0}</li>
+                                <li><strong>Acessos Manuais:</strong> ${data.estatisticas.acessos_manuais || 0}</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (data.acessos && data.acessos.length > 0) {
+                html += `
+                    <h6>Detalhes dos Acessos:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Registro</th>
+                                    <th>Nome</th>
+                                    <th>Departamento</th>
+                                    <th>Tipo</th>
+                                    <th>Data/Hora</th>
+                                    <th>Método</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.acessos.forEach(acesso => {
+                    html += `
+                        <tr>
+                            <td>${acesso.numero_registro}</td>
+                            <td>${acesso.nome_completo || 'N/A'}</td>
+                            <td>${acesso.departamento || 'N/A'}</td>
+                            <td>${acesso.tipo_acesso}</td>
+                            <td>${new Date(acesso.data_hora).toLocaleString('pt-BR')}</td>
+                            <td>${acesso.metodo_acesso}</td>
+                            <td>${acesso.status}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                html += '<p class="text-muted">Nenhum acesso encontrado no período selecionado.</p>';
+            }
+            
+            conteudo.innerHTML = html;
+            container.style.display = 'block';
+        }
+        
+        function mostrarAlerta(mensagem, tipo) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${mensagem}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            container.appendChild(alert);
+            
+            // Remover após 5 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        // Funções para o Relatório de Presença
+        function carregarRelatorioPresenca() {
+            fetch('/api/relatorio-presenca')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mostrarFuncionariosPresentes(data.presentes);
+                        mostrarFuncionariosSairam(data.sairam);
+                    } else {
+                        mostrarAlerta('Erro ao carregar relatório de presença', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar relatório:', error);
+                    mostrarAlerta('Erro ao carregar relatório de presença', 'danger');
+                });
+        }
+        
+        function mostrarFuncionariosPresentes(presentes) {
+            const container = document.getElementById('presentes-container');
+            
+            if (presentes.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhum funcionário presente no momento.</p>';
+                return;
+            }
+            
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Registro</th>
+                                <th>Nome</th>
+                                <th>Departamento</th>
+                                <th>Última Entrada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            presentes.forEach(func => {
+                html += `
+                    <tr>
+                        <td>${func.numero_registro}</td>
+                        <td>${func.nome}</td>
+                        <td>${func.departamento || 'N/A'}</td>
+                        <td>${func.ultima_entrada || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2"><small>Total: ${presentes.length} funcionário(s)</small></p>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function mostrarFuncionariosSairam(sairam) {
+            const container = document.getElementById('sairam-container');
+            
+            if (sairam.length === 0) {
+                container.innerHTML = '<p class="text-muted">Nenhum funcionário saiu hoje.</p>';
+                return;
+            }
+            
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Registro</th>
+                                <th>Nome</th>
+                                <th>Departamento</th>
+                                <th>Última Saída</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            sairam.forEach(func => {
+                html += `
+                    <tr>
+                        <td>${func.numero_registro}</td>
+                        <td>${func.nome}</td>
+                        <td>${func.departamento || 'N/A'}</td>
+                        <td>${func.ultima_saida || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted mt-2"><small>Total: ${sairam.length} funcionário(s)</small></p>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function atualizarRelatorioPresenca() {
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Atualizando...';
+            btn.disabled = true;
+            
+            carregarRelatorioPresenca();
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                mostrarAlerta('Relatório atualizado com sucesso!', 'success');
+            }, 1000);
+        }
+        
+        function exportarRelatorioPresenca() {
+            fetch('/api/relatorio-presenca')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Criar CSV
+                        let csv = 'Funcionários Presentes\n';
+                        csv += 'Registro,Nome,Departamento,Última Entrada\n';
+                        data.presentes.forEach(func => {
+                            csv += `${func.numero_registro},"${func.nome}","${func.departamento || ''}","${func.ultima_entrada || ''}"\n`;
+                        });
+                        
+                        csv += '\nFuncionários que Saíram\n';
+                        csv += 'Registro,Nome,Departamento,Última Saída\n';
+                        data.sairam.forEach(func => {
+                            csv += `${func.numero_registro},"${func.nome}","${func.departamento || ''}","${func.ultima_saida || ''}"\n`;
+                        });
+                        
+                        // Download
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `relatorio_presenca_${new Date().toISOString().split('T')[0]}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        
+                        mostrarAlerta('Relatório exportado com sucesso!', 'success');
+                    } else {
+                        mostrarAlerta('Erro ao exportar relatório', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao exportar relatório:', error);
+                    mostrarAlerta('Erro ao exportar relatório', 'danger');
+                });
+        }
+        
+        // Carregar relatório de presença ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarRelatorioPresenca();
+        });
+    </script>
+</body>
+</html> 

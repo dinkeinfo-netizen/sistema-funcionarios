@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Manual - Sistema de Controle de Acesso</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-text: #2c3e50;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 40px;
+        }
+
+        .form-control {
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            padding: 15px 20px;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .btn {
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #229954);
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            border: none;
+        }
+
+        .access-type-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .access-type-btn {
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .access-type-btn:hover {
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .access-type-btn.active {
+            border-color: var(--secondary-color);
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+        }
+
+        .result-card {
+            margin-top: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .result-success {
+            background: linear-gradient(135deg, var(--success-color), #229954);
+            color: white;
+        }
+
+        .result-error {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: scale(1.1);
+            color: var(--secondary-color);
+        }
+
+        .time-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .employee-info {
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid var(--secondary-color);
+        }
+
+        .employee-info h5 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .employee-info p {
+            margin-bottom: 5px;
+            color: var(--dark-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Botão Voltar -->
+        <a href="/" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-keyboard me-3"></i>Acesso Manual</h2>
+                <p class="mb-0">Digite seu número de registro para registrar entrada, saída ou intervalos</p>
+            </div>
+
+            <div class="card-body">
+                <!-- Display de Horário -->
+                <div class="time-display" id="currentTime">
+                    <i class="fas fa-clock me-2"></i>
+                    <span id="timeDisplay">--:--:--</span>
+                </div>
+
+                <!-- Formulário de Acesso -->
+                <form id="accessForm">
+                    <div class="mb-4">
+                        <label for="numeroRegistro" class="form-label">
+                            <i class="fas fa-id-card me-2"></i>Número de Registro
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="numeroRegistro" 
+                               name="numero_registro" 
+                               placeholder="Digite seu número de registro"
+                               required
+                               autocomplete="off">
+                    </div>
+
+                    <!-- Tipos de Acesso -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-list me-2"></i>Tipo de Acesso
+                        </label>
+                        <div class="access-type-buttons">
+                            <div class="access-type-btn active" data-type="">
+                                <i class="fas fa-magic fa-2x mb-2"></i>
+                                <div>Automático</div>
+                                <small id="tipoDetectado">Detectando...</small>
+                            </div>
+                            <div class="access-type-btn" data-type="entrada">
+                                <i class="fas fa-sign-in-alt fa-2x mb-2"></i>
+                                <div>Entrada</div>
+                            </div>
+                            <div class="access-type-btn" data-type="saida">
+                                <i class="fas fa-sign-out-alt fa-2x mb-2"></i>
+                                <div>Saída</div>
+                            </div>
+                            <div class="access-type-btn" data-type="almoco_entrada">
+                                <i class="fas fa-utensils fa-2x mb-2"></i>
+                                <div>Almoço Entrada</div>
+                            </div>
+                            <div class="access-type-btn" data-type="almoco_saida">
+                                <i class="fas fa-utensils fa-2x mb-2"></i>
+                                <div>Almoço Saída</div>
+                            </div>
+                            <div class="access-type-btn" data-type="intervalo_entrada">
+                                <i class="fas fa-coffee fa-2x mb-2"></i>
+                                <div>Intervalo Entrada</div>
+                            </div>
+                            <div class="access-type-btn" data-type="intervalo_saida">
+                                <i class="fas fa-coffee fa-2x mb-2"></i>
+                                <div>Intervalo Saída</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="tipoAcesso" name="tipo_acesso" value="">
+                    </div>
+
+                    <!-- Observação -->
+                    <div class="mb-4">
+                        <label for="observacao" class="form-label">
+                            <i class="fas fa-comment me-2"></i>Observação (opcional)
+                        </label>
+                        <textarea class="form-control" 
+                                  id="observacao" 
+                                  name="observacao" 
+                                  rows="3" 
+                                  placeholder="Digite uma observação se necessário"></textarea>
+                    </div>
+
+                    <!-- Botão de Registro -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-2"></i>Registrar Acesso
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Processando acesso...</p>
+                </div>
+
+                <!-- Resultado -->
+                <div id="result" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Atualizar horário
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR');
+            document.getElementById('timeDisplay').textContent = timeString;
+        }
+
+        // Atualizar horário a cada segundo
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Seleção de tipo de acesso
+        document.querySelectorAll('.access-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remover classe active de todos os botões
+                document.querySelectorAll('.access-type-btn').forEach(b => b.classList.remove('active'));
+                // Adicionar classe active ao botão clicado
+                this.classList.add('active');
+                // Atualizar valor do campo hidden
+                document.getElementById('tipoAcesso').value = this.dataset.type;
+            });
+        });
+
+        // Submissão do formulário
+        document.getElementById('accessForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const numeroRegistro = document.getElementById('numeroRegistro').value.trim();
+            const tipoAcesso = document.getElementById('tipoAcesso').value;
+            const observacao = document.getElementById('observacao').value.trim();
+
+            if (!numeroRegistro) {
+                showResult('Por favor, digite seu número de registro.', 'error');
+                return;
+            }
+
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            // Preparar dados
+            const formData = new FormData();
+            formData.append('numero_registro', numeroRegistro);
+            formData.append('tipo_acesso', tipoAcesso);
+            if (observacao) {
+                formData.append('observacao', observacao);
+            }
+
+            // Enviar requisição
+            fetch('/registrar_acesso_funcionario', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                
+                if (data.success) {
+                    showResult(data.message, 'success', data.funcionario);
+                    // Limpar formulário
+                    document.getElementById('accessForm').reset();
+                    document.querySelector('.access-type-btn[data-type="entrada"]').click();
+                } else {
+                    showResult(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                showResult('Erro ao processar acesso. Tente novamente.', 'error');
+                console.error('Erro:', error);
+            });
+        });
+
+        // Mostrar resultado
+        function showResult(message, type, funcionario = null) {
+            const resultDiv = document.getElementById('result');
+            const resultClass = type === 'success' ? 'result-success' : 'result-error';
+            
+            let html = `
+                <div class="result-card ${resultClass}">
+                    <div class="card-body">
+                        <h5><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${message}
+                        </h5>
+            `;
+
+            if (funcionario && type === 'success') {
+                html += `
+                    <div class="employee-info">
+                        <h5><i class="fas fa-user me-2"></i>Informações do Funcionário</h5>
+                        <p><strong>Nome:</strong> ${funcionario.nome}</p>
+                        <p><strong>Departamento:</strong> ${funcionario.departamento}</p>
+                        <p><strong>Cargo:</strong> ${funcionario.cargo}</p>
+                        <p><strong>Empresa:</strong> ${funcionario.empresa}</p>
+                        <p><strong>Horário:</strong> ${funcionario.hora}</p>
+                        <p><strong>Tipo:</strong> ${funcionario.tipo_acesso}</p>
+                    </div>
+                `;
+            }
+
+            html += '</div></div>';
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+
+            // Auto-hide após 5 segundos
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Função para detectar tipo de acesso automaticamente
+        function detectarTipoAcesso(numeroRegistro) {
+            if (!numeroRegistro) return;
+            
+            fetch('/api/detectar_tipo_acesso', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    numero_registro: numeroRegistro
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tipoDetectado = document.getElementById('tipoDetectado');
+                    const tipoAcesso = document.getElementById('tipoAcesso');
+                    
+                    tipoDetectado.textContent = `Será registrado: ${data.tipo_acesso}`;
+                    tipoAcesso.value = data.tipo_acesso;
+                    
+                    // Atualizar visual do botão automático
+                    const btnAutomatico = document.querySelector('.access-type-btn[data-type=""]');
+                    if (btnAutomatico) {
+                        btnAutomatico.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
+                        btnAutomatico.style.color = 'white';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao detectar tipo:', error);
+            });
+        }
+
+        // Detectar tipo quando digitar número de registro
+        document.getElementById('numeroRegistro').addEventListener('input', function() {
+            const numeroRegistro = this.value.trim();
+            if (numeroRegistro.length >= 3) {
+                detectarTipoAcesso(numeroRegistro);
+            }
+        });
+
+        // Foco no campo de registro
+        document.getElementById('numeroRegistro').focus();
+    </script>
+</body>
+</html> 

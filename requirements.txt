@@ -1,0 +1,20 @@
+# Dependências específicas para Sistema de Controle de Acesso de Funcionários
+Flask==3.1.1
+mysql-connector-python==9.3.0
+python-dotenv==1.0.0
+flask-cors==6.0.1
+requests
+urllib3
+pandas
+openpyxl
+xlrd
+Werkzeug==3.1.1
+python-dateutil
+qrcode[pil]
+face-recognition
+opencv-python
+numpy
+Pillow
+cryptography
+reportlab
+pytz 
