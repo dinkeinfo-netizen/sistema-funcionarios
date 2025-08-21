@@ -210,6 +210,25 @@
             color: white;
             font-size: 0.8rem;
         }
+        
+        /* Footer com crédito */
+        .footer-credit {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-top: 1px solid #e2e8f0;
+            padding: 15px 0;
+            margin-top: 2rem;
+        }
+        
+        .developer-credit {
+            color: #dc3545;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .developer-credit strong {
+            color: #1e293b;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -542,5 +561,25 @@
             setInterval(carregarDados, 30000);
         });
     </script>
+    
+    <!-- Footer com crédito -->
+    <footer class="footer-credit mt-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <span class="text-muted">
+                        <i class="fas fa-copyright me-1"></i>
+                        2024 Sistema de Controle de Acesso
+                    </span>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="developer-credit">
+                        <i class="fas fa-code me-1"></i>
+                        Desenvolvido por <strong>DINKE</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html> 

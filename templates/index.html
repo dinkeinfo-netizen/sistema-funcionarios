@@ -175,6 +175,25 @@
             color: var(--primary-color);
         }
         
+        /* Footer com crédito */
+        .footer-credit {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-top: 1px solid #e2e8f0;
+            padding: 15px 0;
+            margin-top: auto;
+        }
+        
+        .developer-credit {
+            color: var(--primary-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .developer-credit strong {
+            color: var(--dark-color);
+            font-weight: 700;
+        }
+        
         /* Responsividade */
         @media (max-width: 768px) {
             .header-section h1 {
@@ -280,6 +299,26 @@
             <div class="status-item">
                 <i class="fas fa-clock"></i>
                 <span class="time-display" id="currentTime">--:--</span>
+            </div>
+        </div>
+        
+        <!-- Footer com crédito -->
+        <div class="footer-credit">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <span class="text-muted">
+                            <i class="fas fa-copyright me-1"></i>
+                            2024 Sistema de Controle de Acesso
+                        </span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="developer-credit">
+                            <i class="fas fa-code me-1"></i>
+                            Desenvolvido por <strong>DINKE</strong>
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
