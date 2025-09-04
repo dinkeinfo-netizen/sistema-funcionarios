@@ -698,7 +698,7 @@
             // Usar dados da API ou gerar dados dos funcionários
             let labels, values;
             
-            if (data.graficos && data.graficos.departamentos) {
+            if (data.graficos && data.graficos.departamentos && data.graficos.departamentos.labels && data.graficos.departamentos.values) {
                 labels = data.graficos.departamentos.labels;
                 values = data.graficos.departamentos.values;
             } else {
@@ -710,6 +710,12 @@
                 });
                 labels = Object.keys(deptCount);
                 values = Object.values(deptCount);
+            }
+            
+            // Garantir que labels e values existem
+            if (!labels || !values || labels.length === 0) {
+                labels = ['TI', 'RH', 'Financeiro', 'Vendas', 'Marketing', 'Operações'];
+                values = [15, 8, 12, 20, 6, 18];
             }
             
             const colors = [
@@ -755,7 +761,7 @@
             // Usar dados da API ou gerar dados de exemplo
             let funcionarios, acessos;
             
-            if (data.graficos && data.graficos.funcionarios_ativos) {
+            if (data.graficos && data.graficos.funcionarios_ativos && Array.isArray(data.graficos.funcionarios_ativos)) {
                 funcionarios = data.graficos.funcionarios_ativos.map(f => f.nome);
                 acessos = data.graficos.funcionarios_ativos.map(f => f.acessos);
             } else {
@@ -765,6 +771,12 @@
                     'Carlos Lima', 'Lucia Ferreira', 'Roberto Alves', 'Fernanda Rocha'
                 ];
                 acessos = [45, 42, 38, 35, 32, 28, 25, 22];
+            }
+            
+            // Garantir que funcionarios e acessos existem
+            if (!funcionarios || !acessos || funcionarios.length === 0) {
+                funcionarios = ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Oliveira', 'Carlos Lima'];
+                acessos = [45, 42, 38, 35, 32];
             }
             
             funcionariosChart = new Chart(ctx, {
