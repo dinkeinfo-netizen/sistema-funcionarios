@@ -1074,9 +1074,18 @@ def registrar_uso_facial(numero_registro):
 @app.route('/registrar_acesso_funcionario', methods=['POST'])
 def registrar_acesso_funcionario():
     """Registra acesso de funcionário"""
-    numero_registro = request.form.get('numero_registro', '').strip()
-    tipo_acesso = request.form.get('tipo_acesso', '')
-    observacao = request.form.get('observacao', '')
+    # Verificar se os dados vieram via JSON ou form
+    if request.is_json:
+        data = request.get_json()
+        numero_registro = data.get('numero_registro', '').strip()
+        tipo_acesso = data.get('tipo_acesso', '')
+        observacao = data.get('observacao', '')
+        metodo_acesso = data.get('metodo_acesso', 'manual')
+    else:
+        numero_registro = request.form.get('numero_registro', '').strip()
+        tipo_acesso = request.form.get('tipo_acesso', '')
+        observacao = request.form.get('observacao', '')
+        metodo_acesso = request.form.get('metodo_acesso', 'manual')
     
     # Se não especificou tipo, determinar automaticamente
     if not tipo_acesso:
@@ -1144,7 +1153,7 @@ def registrar_acesso_funcionario():
              metodo_acesso, observacao, ip_acesso, user_agent) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (numero_registro, nome, departamento, cargo, empresa, tipo_acesso,
-               agora.date(), agora.time(), agora, 'manual', observacao, ip_acesso, user_agent))
+               agora.date(), agora.time(), agora, metodo_acesso, observacao, ip_acesso, user_agent))
         
         cursor.close()
         conn.close()
