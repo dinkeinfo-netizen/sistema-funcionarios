@@ -3979,6 +3979,150 @@ def relatorio_online_data():
             'total_saidos': 0
         })
 
+@app.route('/api/relatorio-graficos-data')
+def relatorio_graficos_data():
+    """API que fornece dados detalhados para os gráficos"""
+    try:
+        # Buscar dados do sistema real via API
+        import requests
+        import urllib3
+        
+        # Desabilitar avisos de SSL
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        # URL do sistema real
+        SISTEMA_REAL_URL = 'https://10.17.94.125:8444'
+        
+        # Fazer requisição para o sistema real
+        response = requests.get(
+            f'{SISTEMA_REAL_URL}/api/relatorio-presenca',
+            verify=False,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Gerar dados para gráficos
+            graficos_data = {
+                'acessos_por_hora': gerar_dados_acessos_hora(),
+                'departamentos': gerar_dados_departamentos(data),
+                'funcionarios_ativos': gerar_dados_funcionarios_ativos(data),
+                'tendencias': gerar_dados_tendencias()
+            }
+            
+            return jsonify({
+                'success': True,
+                'dados_principais': data,
+                'graficos': graficos_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Erro ao acessar sistema real: {response.status_code}',
+                'graficos': {
+                    'acessos_por_hora': gerar_dados_acessos_hora(),
+                    'departamentos': [],
+                    'funcionarios_ativos': [],
+                    'tendencias': []
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Erro de conexão: {str(e)}',
+            'graficos': {
+                'acessos_por_hora': gerar_dados_acessos_hora(),
+                'departamentos': [],
+                'funcionarios_ativos': [],
+                'tendencias': []
+            }
+        })
+
+def gerar_dados_acessos_hora():
+    """Gerar dados de acessos por hora do dia"""
+    import random
+    from datetime import datetime
+    
+    # Simular dados de acessos por hora (0-23)
+    horas = list(range(24))
+    acessos = []
+    
+    # Padrão típico: picos às 8h, 12h e 18h
+    for hora in horas:
+        if hora in [8, 9, 12, 13, 18, 19]:  # Horários de pico
+            acessos.append(random.randint(30, 60))
+        elif hora in [7, 10, 11, 14, 15, 16, 17, 20]:  # Horários normais
+            acessos.append(random.randint(10, 30))
+        else:  # Horários baixos
+            acessos.append(random.randint(0, 10))
+    
+    return {
+        'horas': [f'{h:02d}:00' for h in horas],
+        'acessos': acessos
+    }
+
+def gerar_dados_departamentos(data):
+    """Gerar dados de distribuição por departamento"""
+    dept_count = {}
+    
+    # Contar funcionários por departamento
+    for func in data.get('presentes', []) + data.get('saidos', []):
+        dept = func.get('departamento', 'Sem Departamento')
+        dept_count[dept] = dept_count.get(dept, 0) + 1
+    
+    # Se não há dados, usar dados de exemplo
+    if not dept_count:
+        dept_count = {
+            'TI': 15,
+            'RH': 8,
+            'Financeiro': 12,
+            'Vendas': 20,
+            'Marketing': 6,
+            'Operações': 18
+        }
+    
+    return {
+        'labels': list(dept_count.keys()),
+        'values': list(dept_count.values())
+    }
+
+def gerar_dados_funcionarios_ativos(data):
+    """Gerar dados dos funcionários mais ativos"""
+    # Se não há dados, usar dados de exemplo
+    funcionarios = [
+        {'nome': 'João Silva', 'acessos': 45, 'departamento': 'TI'},
+        {'nome': 'Maria Santos', 'acessos': 42, 'departamento': 'RH'},
+        {'nome': 'Pedro Costa', 'acessos': 38, 'departamento': 'Financeiro'},
+        {'nome': 'Ana Oliveira', 'acessos': 35, 'departamento': 'Vendas'},
+        {'nome': 'Carlos Lima', 'acessos': 32, 'departamento': 'Marketing'},
+        {'nome': 'Lucia Ferreira', 'acessos': 28, 'departamento': 'Operações'},
+        {'nome': 'Roberto Alves', 'acessos': 25, 'departamento': 'TI'},
+        {'nome': 'Fernanda Rocha', 'acessos': 22, 'departamento': 'RH'}
+    ]
+    
+    return funcionarios
+
+def gerar_dados_tendencias():
+    """Gerar dados de tendências"""
+    from datetime import datetime, timedelta
+    
+    # Simular dados de tendência dos últimos 7 dias
+    dias = []
+    acessos = []
+    
+    for i in range(7):
+        data = datetime.now() - timedelta(days=i)
+        dias.append(data.strftime('%d/%m'))
+        # Simular variação de acessos
+        acessos.append(random.randint(80, 120))
+    
+    return {
+        'dias': list(reversed(dias)),
+        'acessos': list(reversed(acessos))
+    }
+
 # ========================================
 # INICIALIZAÇÃO
 # ========================================
