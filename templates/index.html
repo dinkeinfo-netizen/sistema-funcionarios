@@ -13,6 +13,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        /* Variáveis CSS para tema claro */
         :root {
             --primary-color: #2563eb;
             --secondary-color: #64748b;
@@ -21,6 +22,33 @@
             --danger-color: #dc2626;
             --dark-color: #1e293b;
             --light-color: #f8fafc;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-color: rgba(0,0,0,0.1);
+            --card-bg: #ffffff;
+            --header-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Variáveis CSS para tema escuro */
+        [data-theme="dark"] {
+            --primary-color: #3b82f6;
+            --secondary-color: #94a3b8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #0f172a;
+            --light-color: #1e293b;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --shadow-color: rgba(0,0,0,0.3);
+            --card-bg: #1e293b;
+            --header-gradient: linear-gradient(135deg, #1e293b 0%, #334155 100%);
         }
         
         * {
@@ -31,22 +59,25 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--header-gradient);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
         
         .main-container {
-            background: white;
+            background: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px var(--shadow-color);
             overflow: hidden;
             max-width: 1200px;
             width: 100%;
             min-height: 600px;
+            transition: all 0.3s ease;
         }
         
         .header-section {
@@ -75,18 +106,19 @@
         }
         
         .access-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 15px;
             padding: 30px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px var(--shadow-color);
             transition: all 0.3s ease;
-            border: 2px solid transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
         }
         
         .access-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            box-shadow: 0 20px 40px var(--shadow-color);
             border-color: var(--primary-color);
         }
         
@@ -150,14 +182,15 @@
 
         
         .status-bar {
-            background: var(--light-color);
+            background: var(--bg-secondary);
             padding: 15px 30px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.9rem;
-            color: var(--secondary-color);
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
         }
         
         .status-item {
@@ -177,10 +210,11 @@
         
         /* Footer com crédito */
         .footer-credit {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-top: 1px solid #e2e8f0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
             padding: 15px 0;
             margin-top: auto;
+            transition: all 0.3s ease;
         }
         
         .developer-credit {
@@ -192,6 +226,27 @@
         .developer-credit strong {
             color: var(--dark-color);
             font-weight: 700;
+        }
+        
+        /* Botão de tema */
+        #theme-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        #theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+        
+        #theme-toggle:focus {
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
         }
         
         /* Responsividade */
@@ -247,8 +302,15 @@
     <div class="main-container">
         <!-- Header -->
         <div class="header-section">
-            <h1><i class="fas fa-id-card me-3"></i>Controle de Acesso</h1>
-            <p>Sistema de Registro de Entrada e Saída de Funcionários</p>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1><i class="fas fa-id-card me-3"></i>Controle de Acesso</h1>
+                    <p>Sistema de Registro de Entrada e Saída de Funcionários</p>
+                </div>
+                <button id="theme-toggle" class="btn btn-outline-light btn-sm" title="Alternar Tema">
+                    <i class="fas fa-sun" id="theme-icon"></i>
+                </button>
+            </div>
         </div>
         
         <!-- Content -->
@@ -370,6 +432,46 @@
                 this.style.transform = 'translateY(0) scale(1)';
             });
         });
+        
+        // Sistema de tema escuro
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+        
+        // Carregar tema salvo
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        // Função para alternar tema
+        function toggleTheme() {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+            
+            // Adicionar animação de transição
+            document.body.style.transition = 'all 0.3s ease';
+            setTimeout(() => {
+                document.body.style.transition = '';
+            }, 300);
+        }
+        
+        // Função para atualizar ícone
+        function updateThemeIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.className = 'fas fa-moon';
+                themeToggle.title = 'Alternar para Tema Claro';
+            } else {
+                themeIcon.className = 'fas fa-sun';
+                themeToggle.title = 'Alternar para Tema Escuro';
+            }
+        }
+        
+        // Event listener para o botão de tema
+        themeToggle.addEventListener('click', toggleTheme);
     </script>
 </body>
 </html> 

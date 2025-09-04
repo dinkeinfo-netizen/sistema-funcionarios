@@ -3950,7 +3950,7 @@ def relatorio_online_data():
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
         # URL do sistema real
-        SISTEMA_REAL_URL = 'https://10.20.0.201:8444'
+        SISTEMA_REAL_URL = 'https://10.17.94.125:8444'
         
         # Fazer requisição para o sistema real
         response = requests.get(
