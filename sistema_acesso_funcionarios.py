@@ -19,6 +19,7 @@ import io
 from flask_cors import CORS
 import threading
 import copy
+import random
 import pandas as pd
 import tempfile
 import qrcode
@@ -3983,50 +3984,18 @@ def relatorio_online_data():
 def relatorio_graficos_data():
     """API que fornece dados detalhados para os gráficos"""
     try:
-        # Buscar dados do sistema real via API
-        import requests
-        import urllib3
+        # Gerar dados para gráficos diretamente
+        graficos_data = {
+            'acessos_por_hora': gerar_dados_acessos_hora(),
+            'departamentos': gerar_dados_departamentos({}),
+            'funcionarios_ativos': gerar_dados_funcionarios_ativos({}),
+            'tendencias': gerar_dados_tendencias()
+        }
         
-        # Desabilitar avisos de SSL
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        # URL do sistema real
-        SISTEMA_REAL_URL = 'https://10.17.94.125:8444'
-        
-        # Fazer requisição para o sistema real
-        response = requests.get(
-            f'{SISTEMA_REAL_URL}/api/relatorio-presenca',
-            verify=False,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            # Gerar dados para gráficos
-            graficos_data = {
-                'acessos_por_hora': gerar_dados_acessos_hora(),
-                'departamentos': gerar_dados_departamentos(data),
-                'funcionarios_ativos': gerar_dados_funcionarios_ativos(data),
-                'tendencias': gerar_dados_tendencias()
-            }
-            
-            return jsonify({
-                'success': True,
-                'dados_principais': data,
-                'graficos': graficos_data
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': f'Erro ao acessar sistema real: {response.status_code}',
-                'graficos': {
-                    'acessos_por_hora': gerar_dados_acessos_hora(),
-                    'departamentos': [],
-                    'funcionarios_ativos': [],
-                    'tendencias': []
-                }
-            })
+        return jsonify({
+            'success': True,
+            'graficos': graficos_data
+        })
             
     except Exception as e:
         return jsonify({
@@ -4042,7 +4011,6 @@ def relatorio_graficos_data():
 
 def gerar_dados_acessos_hora():
     """Gerar dados de acessos por hora do dia"""
-    import random
     from datetime import datetime
     
     # Simular dados de acessos por hora (0-23)
