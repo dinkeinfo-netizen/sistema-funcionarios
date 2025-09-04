@@ -310,48 +310,8 @@
 
         <!-- Conteúdo Principal -->
         <div id="content-container" style="display: none;">
-            <!-- Seção de Gráficos -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Gráficos de Tendência
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <!-- Gráfico de Distribuição por Departamento -->
-                                <div class="col-md-6 mb-3">
-                                    <div class="chart-container" style="position: relative; height: 300px;">
-                                        <canvas id="departamentosChart"></canvas>
-                                    </div>
-                                    <h6 class="text-center mt-2">Distribuição por Departamento</h6>
-                                </div>
-                                <!-- Gráfico de Acessos por Hora -->
-                                <div class="col-md-6 mb-3">
-                                    <div class="chart-container" style="position: relative; height: 300px;">
-                                        <canvas id="acessosChart"></canvas>
-                                    </div>
-                                    <h6 class="text-center mt-2">Acessos por Hora</h6>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <!-- Gráfico de Funcionários Mais Ativos -->
-                                <div class="col-md-12">
-                                    <div class="chart-container" style="position: relative; height: 250px;">
-                                        <canvas id="funcionariosChart"></canvas>
-                                    </div>
-                                    <h6 class="text-center mt-2">Top 10 Funcionários Mais Ativos</h6>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row g-2">
+            <!-- Seção de Funcionários -->
+            <div class="row g-2 mb-4">
                 <!-- Funcionários Presentes - Coluna Esquerda -->
                 <div class="col-md-6">
                     <div class="card">
@@ -409,6 +369,47 @@
                                         <!-- Dados serão inseridos via JavaScript -->
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Seção de Gráficos -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Gráficos de Tendência
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Gráfico de Distribuição por Departamento -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="chart-container" style="position: relative; height: 300px;">
+                                        <canvas id="departamentosChart"></canvas>
+                                    </div>
+                                    <h6 class="text-center mt-2">Distribuição por Departamento</h6>
+                                </div>
+                                <!-- Gráfico de Acessos por Hora -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="chart-container" style="position: relative; height: 300px;">
+                                        <canvas id="acessosChart"></canvas>
+                                    </div>
+                                    <h6 class="text-center mt-2">Acessos por Hora</h6>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <!-- Gráfico de Funcionários Mais Ativos -->
+                                <div class="col-md-12">
+                                    <div class="chart-container" style="position: relative; height: 250px;">
+                                        <canvas id="funcionariosChart"></canvas>
+                                    </div>
+                                    <h6 class="text-center mt-2">Top 10 Funcionários Mais Ativos</h6>
+                                </div>
                             </div>
                         </div>
                     </div>
