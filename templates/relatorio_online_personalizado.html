@@ -33,30 +33,37 @@
             margin: 0 auto;
         }
 
-        /* Header Estilo Referência */
+        /* Header Compacto conforme as setas */
         .page-header {
             background-color: var(--header-bg);
             border-radius: 8px;
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
         }
 
         .page-header h1 {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 600;
             margin: 0;
             color: #2c3e50;
         }
 
-        .page-info {
-            padding: 0 5px;
-            margin-bottom: 15px;
+        .page-info-compact {
             color: #666;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
+            margin-top: 2px;
         }
 
-        /* Layout em Colunas */
+        /* Layout em Colunas Equilibradas */
         .report-grid {
             display: flex;
             gap: 20px;
@@ -72,10 +79,10 @@
         }
 
         .column-title {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 600;
-            padding: 10px 0;
-            margin-bottom: 5px;
+            padding: 5px 0;
+            margin-bottom: 2px;
         }
 
         .title-presentes {
@@ -86,7 +93,7 @@
             color: var(--absent-color);
         }
 
-        /* Tabela Estilo Limpo */
+        /* Tabela Estilo Limpo e Compacto */
         .table {
             margin-bottom: 0;
         }
@@ -96,15 +103,15 @@
             border-bottom: 2px solid var(--border-color);
             color: #333;
             font-weight: 700;
-            font-size: 0.9rem;
-            padding: 8px 12px;
+            font-size: 0.85rem;
+            padding: 6px 10px;
             text-transform: none;
         }
 
         .table tbody td {
             border-bottom: 1px solid var(--border-color);
-            padding: 8px 12px;
-            font-size: 0.9rem;
+            padding: 6px 10px;
+            font-size: 0.85rem;
             vertical-align: middle;
         }
 
@@ -119,8 +126,8 @@
             left: 0;
             right: 0;
             background: white;
-            padding: 5px 20px;
-            font-size: 0.8rem;
+            padding: 3px 20px;
+            font-size: 0.75rem;
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
@@ -131,12 +138,12 @@
         /* Countdowns e Badges */
         .count-badge {
             font-weight: normal;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             opacity: 0.8;
             margin-left: 5px;
         }
 
-        /* Esconder elementos desnecessários da versão anterior */
+        /* Loading */
         #loading-container {
             position: fixed;
             top: 50%;
@@ -145,38 +152,35 @@
             z-index: 2000;
         }
 
-        .btn-back-floating {
-            position: fixed;
-            top: 20px;
-            right: 25px;
-            z-index: 1001;
+        /* Botão sair no header */
+        .btn-header-action {
+            padding: 4px 12px;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 
 <body>
-    <!-- Botão Voltar Discreto -->
-    <div class="btn-back-floating">
-        <a href="/admin" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left"></i> Sair do Relatório
-        </a>
-    </div>
-
     <div class="container-fluid">
-        <!-- Header -->
+        <!-- Header Unificado -->
         <div class="page-header">
-            <h1>Relatório de Presença</h1>
+            <div class="header-title-group">
+                <h1>Relatório de Presença</h1>
+                <div class="page-info-compact">
+                    Lista de funcionários presentes e que saíram hoje.
+                </div>
+            </div>
+
+            <a href="/admin" class="btn btn-outline-secondary btn-sm btn-header-action">
+                <i class="fas fa-arrow-left me-1"></i> Sair do Relatório
+            </a>
         </div>
 
-        <div class="page-info">
-            Lista de funcionários presentes e que saíram hoje.
-        </div>
-
-        <!-- Conteúdo Principal -->
+        <!-- Conteúdo Principal com Colunas 6/6 -->
         <div id="content-container">
             <div class="row g-4">
-                <!-- Coluna Presentes -->
-                <div class="col-lg-7">
+                <!-- Coluna Presentes (50%) -->
+                <div class="col-lg-6">
                     <div class="column-title title-presentes">
                         Funcionários Presentes
                         <span class="count-badge">(<span id="count-presentes">0</span>)</span>
@@ -198,8 +202,8 @@
                     </div>
                 </div>
 
-                <!-- Coluna Saídos -->
-                <div class="col-lg-5">
+                <!-- Coluna Saídos (50%) -->
+                <div class="col-lg-6">
                     <div class="column-title title-saidos">
                         Funcionários que Saíram
                         <span class="count-badge">(<span id="count-saidos">0</span>)</span>
@@ -224,8 +228,8 @@
         </div>
 
         <!-- Mensagem de Erro -->
-        <div id="error-container" style="display: none;" class="mt-4">
-            <div class="alert alert-danger">
+        <div id="error-container" style="display: none;" class="mt-2">
+            <div class="alert alert-danger p-2 small">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 <span id="error-message-text"></span>
             </div>
