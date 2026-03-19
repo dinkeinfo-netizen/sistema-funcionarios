@@ -174,6 +174,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
     password_hash TEXT NOT NULL,
     nome_completo VARCHAR(100) NOT NULL,
     email VARCHAR(100),
+    role VARCHAR(20) DEFAULT 'admin' COMMENT 'admin, portaria',
     ativo BOOLEAN DEFAULT TRUE,
     ultimo_login TIMESTAMP NULL,
     data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
