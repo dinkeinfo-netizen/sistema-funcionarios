@@ -43,6 +43,225 @@ CORS(app)
 # Configurar timezone para Brasil
 import os
 os.environ['TZ'] = 'America/Sao_Paulo'
+import socket
+
+#dalmo def get_host_ip():
+def get_host_ip():
+    """
+    Detecta automaticamente o IP da máquina hospedeira.
+    Prioridade: 1) Arquivo config_ip.txt, 2) Variável de ambiente, 3) Detecção automática
+    """
+    try:
+        # MÉTODO 1: Ler de arquivo de configuração (PRIORIDADE MÁXIMA)
+        try:
+            # Tentar no diretório /app (dentro do container Docker)
+            config_file = '/app/config_ip.txt'
+            # Se não existir, tentar no diretório raiz do projeto (para desenvolvimento)
+            if not os.path.exists(config_file):
+                config_file = 'config_ip.txt'
+            
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    ip_manual = f.read().strip()
+                    # Remover comentários e espaços em branco
+                    if '#' in ip_manual:
+                        ip_manual = ip_manual.split('#')[0].strip()
+                    
+                    if ip_manual and len(ip_manual) > 0:
+                        # Validar formato IP básico (4 números separados por ponto)
+                        parts = ip_manual.split('.')
+                        if len(parts) == 4:
+                            # Testar acessibilidade na porta 8444
+                            try:
+                                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                test_socket.settimeout(2)
+                                result = test_socket.connect_ex((ip_manual, 8444))
+                                test_socket.close()
+                                if result == 0:
+                                    print(f"✅ Usando IP do arquivo de configuração (testado e acessível): {ip_manual}")
+                                    return ip_manual
+                                else:
+                                    print(f"⚠️ IP do arquivo de configuração ({ip_manual}) não é acessível na porta 8444 (código: {result})")
+                                    print("🔍 Continuando com outros métodos...")
+                            except socket.timeout:
+                                print(f"⚠️ Timeout ao testar IP do arquivo de configuração ({ip_manual})")
+                                print("🔍 Continuando com outros métodos...")
+                            except Exception as e:
+                                print(f"⚠️ Erro ao testar IP do arquivo de configuração ({ip_manual}): {e}")
+                                print("🔍 Continuando com outros métodos...")
+                        else:
+                            print(f"⚠️ Formato de IP inválido no arquivo de configuração: {ip_manual}")
+        except FileNotFoundError:
+            # Arquivo não existe, continuar
+            pass
+        except Exception as e:
+            print(f"⚠️ Erro ao ler arquivo de configuração: {e}")
+        
+        # MÉTODO 2: Variável de ambiente (testar acessibilidade)
+        env_ip = os.getenv('SISTEMA_REAL_IP')
+        if env_ip:
+            print(f"🔍 Testando IP da variável de ambiente: {env_ip}")
+            try:
+                test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_socket.settimeout(2)
+                result = test_socket.connect_ex((env_ip, 8444))
+                test_socket.close()
+                if result == 0:
+                    print(f"✅ Usando IP da variável de ambiente (testado e acessível): {env_ip}")
+                    return env_ip
+                else:
+                    print(f"⚠️ IP da variável de ambiente ({env_ip}) não é acessível na porta 8444 (código: {result})")
+                    print("🔍 Continuando com detecção automática...")
+            except socket.timeout:
+                print(f"⚠️ Timeout ao testar IP da variável de ambiente ({env_ip})")
+                print("🔍 Continuando com detecção automática...")
+            except Exception as e:
+                print(f"⚠️ Erro ao testar IP da variável de ambiente ({env_ip}): {e}")
+                print("🔍 Continuando com detecção automática...")
+        
+        # MÉTODO 3: Variável de ambiente com URL completa
+        env_url = os.getenv('SISTEMA_REAL_URL')
+        if env_url:
+            # Extrair IP da URL se for uma URL completa
+            if '://' in env_url:
+                # Ex: https://10.17.95.4:8444 -> 10.17.95.4
+                ip_part = env_url.split('://')[1].split(':')[0]
+                print(f"✅ Usando IP extraído da URL: {ip_part}")
+                return ip_part
+            print(f"✅ Usando URL da variável de ambiente: {env_url}")
+            return env_url
+        
+        # MÉTODO 4: Detecção automática
+        print("🔍 Iniciando detecção automática do IP do host...")
+        
+        # 4a: host.docker.internal
+        try:
+            host_ip = socket.gethostbyname('host.docker.internal')
+            if host_ip and host_ip != '127.0.0.1':
+                print(f"✅ IP detectado via host.docker.internal: {host_ip}")
+                return host_ip
+        except Exception as e:
+            print(f"⚠️ host.docker.internal não disponível: {e}")
+        
+        # 4b: ip route get 8.8.8.8
+        try:
+            import subprocess
+            result = subprocess.run(['ip', 'route', 'get', '8.8.8.8'], 
+                                  capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                for word in result.stdout.split():
+                    if '.' in word and word.count('.') == 3:
+                        if not (word.startswith('172.17.') or word.startswith('172.18.') or 
+                               word.startswith('172.19.') or word.startswith('192.168.122.')):
+                            if not word.startswith('127.'):
+                                print(f"✅ IP detectado via ip route: {word}")
+                                return word
+        except Exception as e:
+            print(f"⚠️ Método ip route falhou: {e}")
+        
+        # 4c: hostname -I
+        try:
+            import subprocess
+            result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                ips = result.stdout.strip().split()
+                for ip in ips:
+                    if ip and not ip.startswith('127.') and not ip.startswith('172.17.') and not ip.startswith('172.18.'):
+                        print(f"✅ IP detectado via hostname -I: {ip}")
+                        return ip
+        except Exception as e:
+            print(f"⚠️ Método hostname -I falhou: {e}")
+        
+        # 4d: ip addr show
+        try:
+            import subprocess
+            result = subprocess.run(['ip', 'addr', 'show'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                lines = result.stdout.split('\n')
+                for line in lines:
+                    if 'inet ' in line and '127.0.0.1' not in line:
+                        parts = line.strip().split()
+                        for part in parts:
+                            if '.' in part and '/' in part:
+                                ip = part.split('/')[0]
+                                if not ip.startswith('127.') and not ip.startswith('172.17.') and not ip.startswith('172.18.'):
+                                    print(f"✅ IP detectado via ip addr: {ip}")
+                                    return ip
+        except Exception as e:
+            print(f"⚠️ Método ip addr falhou: {e}")
+        
+        # 4e: Em Docker, tentar obter IP do host via gateway
+        try:
+            # Ler /proc/net/route para obter gateway
+            with open('/proc/net/route', 'r') as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 3 and parts[1] == '00000000':  # default route
+                        gateway_hex = parts[2]
+                        # Converter hex little-endian para IP
+                        gateway_ip = '.'.join([str(int(gateway_hex[i:i+2], 16)) 
+                                             for i in range(6, -1, -2)])
+                        if gateway_ip and not gateway_ip.startswith('0.') and gateway_ip != '0.0.0.0':
+                            print(f"✅ IP do host detectado via gateway Docker: {gateway_ip}")
+                            return gateway_ip
+        except Exception as e:
+            print(f"⚠️ Método gateway falhou: {e}")
+        
+        # 4f: Tentar obter hostname e resolver
+        try:
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            if local_ip != '127.0.0.1' and not local_ip.startswith('127.'):
+                print(f"✅ IP detectado via hostname: {local_ip}")
+                return local_ip
+        except Exception as e:
+            print(f"⚠️ Método hostname falhou: {e}")
+        
+        # 4g: Listar todas as interfaces de rede via netifaces (se disponível)
+        try:
+            import netifaces
+            gateways = netifaces.gateways()
+            default_interface = gateways['default'][netifaces.AF_INET][1]
+            addrs = netifaces.ifaddresses(default_interface)
+            if netifaces.AF_INET in addrs:
+                ip = addrs[netifaces.AF_INET][0]['addr']
+                if ip != '127.0.0.1' and not ip.startswith('172.17.') and not ip.startswith('172.18.'):
+                    print(f"✅ IP detectado via netifaces: {ip}")
+                    return ip
+        except ImportError:
+            pass
+        except Exception as e:
+            print(f"⚠️ Método netifaces falhou: {e}")
+        
+        print("⚠️ Não foi possível detectar IP automaticamente, usando localhost")
+        return '127.0.0.1'
+        
+    except Exception as e:
+        print(f"❌ Erro ao detectar IP: {e}")
+        import traceback
+        traceback.print_exc()
+        return '127.0.0.1'
+# dalmo return '127.0.0.1'
+
+def get_sistema_real_url():
+    """
+    Retorna a URL completa do sistema real.
+    Usa variável de ambiente ou detecta automaticamente o IP.
+    """
+    # Verificar se há URL completa na variável de ambiente
+    env_url = os.getenv('SISTEMA_REAL_URL')
+    if env_url:
+        # Se já tem protocolo, retornar como está
+        if '://' in env_url:
+            return env_url
+        # Se não tem protocolo, adicionar
+        return f'https://{env_url}'
+    
+    # Detectar IP automaticamente
+    host_ip = get_host_ip()
+    port = os.getenv('SISTEMA_REAL_PORT', '8444')
+    
+    return f'https://{host_ip}:{port}'
 
 def get_data_atual():
     """Retorna a data atual no timezone do Brasil"""
@@ -159,21 +378,71 @@ HORARIOS_PADRAO = {
 # FUNÇÕES DE CONEXÃO (REUTILIZADAS)
 # ========================================
 
+# Pool de conexões global
+_connection_pool = None
+
+def get_connection_pool():
+    """Retorna ou cria o pool de conexões"""
+    global _connection_pool
+    if _connection_pool is None:
+        try:
+            _connection_pool = mysql.connector.pooling.MySQLConnectionPool(
+                pool_name="acesso_pool",
+                pool_size=20,  # Aumentado para evitar esgotamento
+                pool_reset_session=True,
+                host=os.getenv('MYSQL_HOST', 'localhost'),
+                user=os.getenv('MYSQL_USER', 'app_user'),
+                password=os.getenv('MYSQL_PASSWORD', 'app_password'),
+                database=os.getenv('MYSQL_DATABASE', 'acesso_funcionarios_db'),
+                autocommit=True,
+                connect_timeout=30,
+                charset='utf8'
+            )
+            print("✅ Pool de conexões MySQL criado com sucesso")
+        except Exception as e:
+            print(f"❌ Erro ao criar pool de conexões: {e}")
+            _connection_pool = None
+    return _connection_pool
+
 def get_simple_connection():
-    """Conexão simples sem pool"""
+    """Conexão usando pool para evitar 'Too many connections'"""
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv('MYSQL_HOST', 'localhost'),
-            user=os.getenv('MYSQL_USER', 'app_user'),
-            password=os.getenv('MYSQL_PASSWORD', 'app_password'),
-            database=os.getenv('MYSQL_DATABASE', 'acesso_funcionarios_db'),
-            autocommit=True,
-            connect_timeout=30,
-            charset='utf8'
-        )
-        return conn
+        pool = get_connection_pool()
+        if pool:
+            # Tentar obter conexão do pool
+            conn = pool.get_connection()
+            return conn
+        else:
+            # Fallback para conexão direta se pool não estiver disponível
+            conn = mysql.connector.connect(
+                host=os.getenv('MYSQL_HOST', 'localhost'),
+                user=os.getenv('MYSQL_USER', 'app_user'),
+                password=os.getenv('MYSQL_PASSWORD', 'app_password'),
+                database=os.getenv('MYSQL_DATABASE', 'acesso_funcionarios_db'),
+                autocommit=True,
+                connect_timeout=30,
+                charset='utf8'
+            )
+            return conn
+    except mysql.connector.pooling.PoolError as e:
+        print(f"⚠️ Erro no pool de conexões: {e}")
+        # Tentar conexão direta como fallback
+        try:
+            conn = mysql.connector.connect(
+                host=os.getenv('MYSQL_HOST', 'localhost'),
+                user=os.getenv('MYSQL_USER', 'app_user'),
+                password=os.getenv('MYSQL_PASSWORD', 'app_password'),
+                database=os.getenv('MYSQL_DATABASE', 'acesso_funcionarios_db'),
+                autocommit=True,
+                connect_timeout=30,
+                charset='utf8'
+            )
+            return conn
+        except Exception as fallback_error:
+            print(f"❌ Erro conexão fallback: {fallback_error}")
+            raise
     except Exception as e:
-        print(f"Erro conexão: {e}")
+        print(f"❌ Erro conexão: {e}")
         raise
 
 # ========================================
@@ -220,6 +489,47 @@ def login_required(f):
             return redirect(url_for('admin_login'))
         
         print(f"DEBUG: Sessão válida, permitindo acesso")
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator para rotas que requerem permissão de administrador"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session or not session['admin_logged_in']:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Acesso negado. Faça login.', 'redirect': '/admin/login'}), 401
+            flash('Você precisa fazer login para acessar esta área.', 'warning')
+            return redirect(url_for('admin_login'))
+        
+        # Verificar se é admin
+        if session.get('admin_role') != 'admin':
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Acesso negado. Permissão de administrador necessária.'}), 403
+            flash('Acesso negado. Permissão de administrador necessária.', 'danger')
+            return redirect(url_for('relatorio_online_sistema_real'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def portaria_or_admin_required(f):
+    """Decorator para rotas acessíveis por portaria ou admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session or not session['admin_logged_in']:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Acesso negado. Faça login.', 'redirect': '/admin/login'}), 401
+            flash('Você precisa fazer login para acessar esta área.', 'warning')
+            return redirect(url_for('admin_login'))
+        
+        # Verificar se é admin ou portaria
+        role = session.get('admin_role')
+        if role not in ['admin', 'portaria']:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
+            flash('Acesso negado.', 'danger')
+            return redirect(url_for('admin_login'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -435,16 +745,17 @@ def determinar_horario_aplicavel(numero_registro, hora_atual, dia_semana):
                 'nome_config': 'Padrão'
             }
         
-        # Buscar horário específico do funcionário (se existir)
+        # Buscar dados do funcionário (horário individual e departamento)
         cursor.execute("""
-            SELECT horario_entrada, horario_saida, tolerancia_entrada, tolerancia_saida
+            SELECT horario_entrada, horario_saida, tolerancia_entrada, tolerancia_saida, departamento
             FROM funcionarios 
             WHERE numero_registro = %s AND ativo = TRUE
         """, (numero_registro,))
         
         funcionario = cursor.fetchone()
+        departamento_funcionario = funcionario['departamento'] if funcionario else None
         
-        # Se funcionário tem horário específico, usar ele
+        # Se funcionário tem horário específico, usar ele (prioridade máxima)
         if funcionario and funcionario['horario_entrada'] and funcionario['horario_saida']:
             return {
                 'hora_entrada': str(funcionario['horario_entrada']),
@@ -457,12 +768,25 @@ def determinar_horario_aplicavel(numero_registro, hora_atual, dia_semana):
         # Lógica para determinar qual configuração usar
         hora_atual_time = datetime.strptime(hora_atual, '%H:%M').time()
         
-        # Filtrar configurações que se aplicam ao dia da semana
-        configuracoes_aplicaveis = []
+        # Filtrar configurações que se aplicam ao departamento do funcionário
+        # Prioridade: 1) Configurações específicas do departamento, 2) Configurações gerais (departamento NULL)
+        configuracoes_por_departamento = []
+        configuracoes_gerais = []
+        
         for config in configuracoes:
             dias_config = config['dias_semana'].split(',')
             if str(dia_semana + 1) in dias_config:  # +1 porque weekday() retorna 0-6, mas config usa 1-7
-                configuracoes_aplicaveis.append(config)
+                # Verificar se a configuração se aplica ao departamento
+                if config.get('departamento') and departamento_funcionario:
+                    # Configuração específica de departamento
+                    if config['departamento'].upper() == departamento_funcionario.upper():
+                        configuracoes_por_departamento.append(config)
+                elif not config.get('departamento'):
+                    # Configuração geral (aplica a todos)
+                    configuracoes_gerais.append(config)
+        
+        # Priorizar configurações específicas do departamento
+        configuracoes_aplicaveis = configuracoes_por_departamento if configuracoes_por_departamento else configuracoes_gerais
         
         if not configuracoes_aplicaveis:
             # Se não há configuração para o dia, usar a primeira disponível
@@ -610,6 +934,45 @@ def verificar_horario_trabalho(numero_registro, tipo_acesso):
 # SISTEMA DE RECONHECIMENTO FACIAL (REUTILIZADO)
 # ========================================
 
+# Cache para otimização de performance
+face_detection_cache = {}
+encoding_cache = {}
+cache_max_size = 100
+cache_ttl = 300  # 5 minutos
+
+def limpar_cache():
+    """Limpa o cache quando necessário"""
+    global face_detection_cache, encoding_cache
+    current_time = time.time()
+    
+    # Limpar cache de detecção
+    face_detection_cache = {k: v for k, v in face_detection_cache.items() 
+                           if current_time - v['timestamp'] < cache_ttl}
+    
+    # Limpar cache de encoding
+    encoding_cache = {k: v for k, v in encoding_cache.items() 
+                     if current_time - v['timestamp'] < cache_ttl}
+    
+    # Limitar tamanho do cache
+    if len(face_detection_cache) > cache_max_size:
+        # Remover os mais antigos
+        sorted_items = sorted(face_detection_cache.items(), key=lambda x: x[1]['timestamp'])
+        face_detection_cache = dict(sorted_items[-cache_max_size:])
+    
+    if len(encoding_cache) > cache_max_size:
+        sorted_items = sorted(encoding_cache.items(), key=lambda x: x[1]['timestamp'])
+        encoding_cache = dict(sorted_items[-cache_max_size:])
+
+def obter_hash_imagem(imagem_rgb):
+    """Gera hash da imagem para cache"""
+    try:
+        # Reduzir imagem para hash mais rápido
+        small = cv2.resize(imagem_rgb, (64, 64))
+        gray = cv2.cvtColor(small, cv2.COLOR_RGB2GRAY)
+        return hashlib.md5(gray.tobytes()).hexdigest()
+    except:
+        return None
+
 def criar_tabelas_facial():
     """Criar tabelas relacionadas ao sistema de reconhecimento facial"""
     try:
@@ -708,9 +1071,165 @@ def normalizar_iluminacao(imagem_rgb):
         print(f"⚠️ Erro na normalização de iluminação: {e}")
         return imagem_rgb  # Retorna imagem original em caso de erro
 
+def normalizar_iluminacao_agressiva(imagem_rgb):
+    """
+    Normalização mais agressiva para ambientes muito escuros
+    """
+    try:
+        # Converter RGB para LAB
+        lab = cv2.cvtColor(imagem_rgb, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # CLAHE mais agressivo para ambientes escuros
+        clahe_agressivo = cv2.createCLAHE(
+            clipLimit=4.0,        # Limite mais alto para ambientes escuros
+            tileGridSize=(4, 4)   # Grade menor para mais detalhes
+        )
+        l_normalizado = clahe_agressivo.apply(l)
+        
+        # Aplicar equalização de histograma adicional
+        l_equalizado = cv2.equalizeHist(l_normalizado)
+        
+        # Combinar com a imagem original (70% normalizada + 30% equalizada)
+        l_final = cv2.addWeighted(l_normalizado, 0.7, l_equalizado, 0.3, 0)
+        
+        # Reunir os canais
+        lab_normalizado = cv2.merge([l_final, a, b])
+        
+        # Converter de volta para RGB
+        imagem_normalizada = cv2.cvtColor(lab_normalizado, cv2.COLOR_LAB2RGB)
+        
+        print("✅ Iluminação agressiva aplicada com sucesso")
+        return imagem_normalizada
+        
+    except Exception as e:
+        print(f"⚠️ Erro na normalização agressiva: {e}")
+        return imagem_rgb
+
+def melhorar_contraste_escuro(imagem_rgb):
+    """
+    Melhora específica para imagens muito escuras com algoritmos avançados
+    """
+    try:
+        # Converter para escala de cinza
+        gray = cv2.cvtColor(imagem_rgb, cv2.COLOR_RGB2GRAY)
+        
+        # Calcular estatísticas da imagem
+        mean_brightness = np.mean(gray)
+        std_brightness = np.std(gray)
+        
+        # Se a imagem está muito escura (média < 50), aplicar melhorias
+        if mean_brightness < 50:
+            # Algoritmo 1: Gamma correction adaptativo
+            gamma = 1.8 if mean_brightness < 20 else 1.5 if mean_brightness < 30 else 1.2
+            gamma_corrected = np.power(gray / 255.0, 1/gamma) * 255.0
+            gamma_corrected = np.uint8(gamma_corrected)
+            
+            # Algoritmo 2: CLAHE adaptativo
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4))
+            clahe_corrected = clahe.apply(gamma_corrected)
+            
+            # Algoritmo 3: Unsharp mask para nitidez
+            gaussian = cv2.GaussianBlur(clahe_corrected, (0, 0), 1.5)
+            unsharp_mask = cv2.addWeighted(clahe_corrected, 1.8, gaussian, -0.8, 0)
+            
+            # Algoritmo 4: Equalização de histograma local
+            if mean_brightness < 30:
+                equalized = cv2.equalizeHist(unsharp_mask)
+                # Combinar com a imagem anterior (70% unsharp + 30% equalized)
+                final_gray = cv2.addWeighted(unsharp_mask, 0.7, equalized, 0.3, 0)
+            else:
+                final_gray = unsharp_mask
+            
+            # Algoritmo 5: Melhoria de contraste local
+            if std_brightness < 20:  # Baixo contraste
+                # Aplicar filtro de realce de bordas
+                kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                enhanced = cv2.filter2D(final_gray, -1, kernel)
+                # Combinar com a imagem anterior
+                final_gray = cv2.addWeighted(final_gray, 0.6, enhanced, 0.4, 0)
+            
+            # Converter de volta para RGB
+            imagem_melhorada = cv2.cvtColor(final_gray, cv2.COLOR_GRAY2RGB)
+            
+            print(f"✅ Contraste melhorado com algoritmos avançados (brilho: {mean_brightness:.1f} → {np.mean(final_gray):.1f})")
+            return imagem_melhorada
+        
+        return imagem_rgb
+        
+    except Exception as e:
+        print(f"⚠️ Erro na melhoria de contraste: {e}")
+        return imagem_rgb
+
+def normalizar_iluminacao_ml(imagem_rgb):
+    """
+    Normalização de iluminação usando técnicas de machine learning
+    """
+    try:
+        # Converter para LAB
+        lab = cv2.cvtColor(imagem_rgb, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Análise de histograma para determinar o melhor método
+        hist = cv2.calcHist([l], [0], None, [256], [0, 256])
+        hist_normalizado = hist / hist.sum()
+        
+        # Calcular métricas de qualidade
+        mean_l = np.mean(l)
+        std_l = np.std(l)
+        entropy = -np.sum(hist_normalizado * np.log2(hist_normalizado + 1e-10))
+        
+        # Decidir o melhor método baseado nas métricas
+        if mean_l < 30 and std_l < 15:
+            # Muito escuro e baixo contraste - usar método agressivo
+            print("🧠 ML: Aplicando normalização agressiva")
+            clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(2, 2))
+            l_normalizado = clahe.apply(l)
+            
+            # Aplicar equalização adicional
+            l_equalizado = cv2.equalizeHist(l_normalizado)
+            l_final = cv2.addWeighted(l_normalizado, 0.6, l_equalizado, 0.4, 0)
+            
+        elif mean_l < 60 and entropy < 6:
+            # Escuro com baixa entropia - usar CLAHE adaptativo
+            print("🧠 ML: Aplicando CLAHE adaptativo")
+            clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(4, 4))
+            l_final = clahe.apply(l)
+            
+        elif std_l < 20:
+            # Baixo contraste - usar realce de contraste
+            print("🧠 ML: Aplicando realce de contraste")
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            l_normalizado = clahe.apply(l)
+            
+            # Aplicar filtro de realce
+            kernel = np.array([[0,-1,0], [-1,5,-1], [0,-1,0]])
+            l_enhanced = cv2.filter2D(l_normalizado, -1, kernel)
+            l_final = cv2.addWeighted(l_normalizado, 0.7, l_enhanced, 0.3, 0)
+            
+        else:
+            # Iluminação normal - usar CLAHE padrão
+            print("🧠 ML: Aplicando normalização padrão")
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            l_final = clahe.apply(l)
+        
+        # Reunir os canais
+        lab_normalizado = cv2.merge([l_final, a, b])
+        
+        # Converter de volta para RGB
+        imagem_normalizada = cv2.cvtColor(lab_normalizado, cv2.COLOR_LAB2RGB)
+        
+        print(f"✅ Normalização ML aplicada (L: {mean_l:.1f} → {np.mean(l_final):.1f})")
+        return imagem_normalizada
+        
+    except Exception as e:
+        print(f"⚠️ Erro na normalização ML: {e}")
+        return imagem_rgb
+
 def calcular_qualidade_imagem(imagem_rgb):
     """
     Calcula métricas de qualidade da imagem para otimizar o processamento
+    Versão avançada com análise de histograma
     Retorna um score de 0.0 a 1.0
     """
     try:
@@ -728,21 +1247,47 @@ def calcular_qualidade_imagem(imagem_rgb):
         brilho_medio = np.mean(gray) / 255.0
         score_brilho = 1.0 - abs(brilho_medio - 0.5) * 2  # Ideal é 0.5 (127)
         
-        # 4. Distribuição de histograma (evitar imagens muito uniformes)
+        # 4. Análise de histograma avançada
         hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
         hist_normalizado = hist / hist.sum()
-        entropia = -np.sum(hist_normalizado * np.log2(hist_normalizado + 1e-10))
-        score_entropia = min(entropia / 8.0, 1.0)  # Normalizar entropia
         
-        # Score final (média ponderada)
+        # Entropia do histograma
+        entropia = -np.sum(hist_normalizado * np.log2(hist_normalizado + 1e-10))
+        score_entropia = min(entropia / 8.0, 1.0)
+        
+        # Análise de distribuição do histograma
+        # Verificar se há picos muito altos (indica baixa qualidade)
+        hist_max = np.max(hist_normalizado)
+        score_distribuicao = 1.0 - min(hist_max * 10, 1.0)  # Penalizar picos altos
+        
+        # Análise de simetria do histograma
+        hist_centro = hist_normalizado[128]  # Valor central
+        hist_esquerda = np.mean(hist_normalizado[:128])  # Lado escuro
+        hist_direita = np.mean(hist_normalizado[128:])   # Lado claro
+        simetria = 1.0 - abs(hist_esquerda - hist_direita) / (hist_esquerda + hist_direita + 1e-10)
+        
+        # Análise de uniformidade (evitar imagens muito uniformes)
+        uniformidade = np.sum(hist_normalizado ** 2)
+        score_uniformidade = 1.0 - min(uniformidade * 2, 1.0)
+        
+        # 5. Análise de bordas (para detectar blur)
+        edges = cv2.Canny(gray, 50, 150)
+        edge_density = np.sum(edges > 0) / (gray.shape[0] * gray.shape[1])
+        score_bordas = min(edge_density * 10, 1.0)
+        
+        # Score final (média ponderada otimizada)
         score_final = (
-            contraste * 0.25 +
-            min(nitidez, 1.0) * 0.25 +
-            score_brilho * 0.25 +
-            score_entropia * 0.25
+            contraste * 0.20 +           # Contraste
+            min(nitidez, 1.0) * 0.20 +   # Nitidez
+            score_brilho * 0.15 +        # Brilho
+            score_entropia * 0.15 +      # Entropia
+            score_distribuicao * 0.10 +  # Distribuição
+            simetria * 0.10 +            # Simetria
+            score_uniformidade * 0.05 +  # Uniformidade
+            score_bordas * 0.05          # Bordas
         )
         
-        print(f"📊 Qualidade da imagem: {score_final:.3f} (contraste:{contraste:.3f}, nitidez:{min(nitidez, 1.0):.3f}, brilho:{score_brilho:.3f}, entropia:{score_entropia:.3f})")
+        print(f"📊 Qualidade avançada: {score_final:.3f} (contraste:{contraste:.3f}, nitidez:{min(nitidez, 1.0):.3f}, brilho:{score_brilho:.3f}, entropia:{score_entropia:.3f}, distrib:{score_distribuicao:.3f}, simetria:{simetria:.3f})")
         
         return min(score_final, 1.0)
         
@@ -765,12 +1310,19 @@ def detectar_condicoes_iluminacao(imagem_rgb):
         p50 = np.percentile(gray, 50)
         p90 = np.percentile(gray, 90)
         
+        # Calcular brilho médio
+        mean_brightness = np.mean(gray)
+        
+        # Análise mais detalhada para ambientes escuros
         condicoes = {
-            'muito_escura': p90 < 100,           # 90% dos pixels são muito escuros
-            'muito_clara': p10 > 180,            # 10% dos pixels são muito claros
-            'baixo_contraste': (p90 - p10) < 50, # Diferença pequena entre claro e escuro
-            'backlight': p10 < 30 and p90 > 200, # Contraluz (muito escuro e muito claro)
-            'uniforme': np.std(gray) < 20        # Muito uniforme
+            'muito_escura': p90 < 100 or mean_brightness < 60,           # 90% dos pixels são muito escuros
+            'extremamente_escura': p90 < 60 or mean_brightness < 30,     # Muito escuro
+            'muito_clara': p10 > 180,                                    # 10% dos pixels são muito claros
+            'baixo_contraste': (p90 - p10) < 50,                         # Diferença pequena entre claro e escuro
+            'backlight': p10 < 30 and p90 > 200,                         # Contraluz (muito escuro e muito claro)
+            'uniforme': np.std(gray) < 20,                               # Muito uniforme
+            'brilho_medio': mean_brightness,                             # Brilho médio para referência
+            'contraste_baixo': np.std(gray) < 15                         # Contraste muito baixo
         }
         
         return condicoes
@@ -779,10 +1331,132 @@ def detectar_condicoes_iluminacao(imagem_rgb):
         print(f"⚠️ Erro na detecção de condições: {e}")
         return {}
 
+def detectar_faces_multiplos_modelos(imagem_rgb, condicoes):
+    """
+    Detecta faces usando múltiplos modelos simultaneamente para máxima eficácia
+    Com sistema de cache para otimização
+    """
+    # Verificar cache primeiro
+    img_hash = obter_hash_imagem(imagem_rgb)
+    if img_hash and img_hash in face_detection_cache:
+        cached_result = face_detection_cache[img_hash]
+        if time.time() - cached_result['timestamp'] < cache_ttl:
+            print(f"🚀 Cache hit para detecção de faces")
+            return cached_result['faces']
+    
+    face_locations = []
+    modelos_usados = []
+    
+    try:
+        # Modelo 1: HOG padrão
+        try:
+            hog_faces = face_recognition.face_locations(imagem_rgb, model="hog", number_of_times_to_upsample=1)
+            if hog_faces:
+                face_locations.extend(hog_faces)
+                modelos_usados.append("HOG")
+        except Exception as e:
+            print(f"⚠️ Erro no modelo HOG: {e}")
+        
+        # Modelo 2: HOG com mais upsamples
+        try:
+            hog_upsampled = face_recognition.face_locations(imagem_rgb, model="hog", number_of_times_to_upsample=2)
+            if hog_upsampled:
+                face_locations.extend(hog_upsampled)
+                modelos_usados.append("HOG+2x")
+        except Exception as e:
+            print(f"⚠️ Erro no modelo HOG+2x: {e}")
+        
+        # Modelo 3: CNN (se disponível)
+        if condicoes.get('muito_escura', False) or condicoes.get('extremamente_escura', False):
+            try:
+                cnn_faces = face_recognition.face_locations(imagem_rgb, model="cnn", number_of_times_to_upsample=1)
+                if cnn_faces:
+                    face_locations.extend(cnn_faces)
+                    modelos_usados.append("CNN")
+            except Exception as e:
+                print(f"⚠️ Erro no modelo CNN: {e}")
+        
+        # Modelo 4: HOG com imagem redimensionada
+        try:
+            altura, largura = imagem_rgb.shape[:2]
+            if altura > 240 or largura > 320:
+                imagem_menor = cv2.resize(imagem_rgb, (320, 240))
+                hog_resized = face_recognition.face_locations(imagem_menor, model="hog", number_of_times_to_upsample=2)
+                if hog_resized:
+                    # Ajustar coordenadas
+                    scale_x = largura / 320
+                    scale_y = altura / 240
+                    hog_resized_scaled = [(int(top * scale_y), int(right * scale_x), 
+                                         int(bottom * scale_y), int(left * scale_x)) for top, right, bottom, left in hog_resized]
+                    face_locations.extend(hog_resized_scaled)
+                    modelos_usados.append("HOG+Resized")
+        except Exception as e:
+            print(f"⚠️ Erro no modelo HOG+Resized: {e}")
+        
+        # Modelo 5: HOG com imagem clareada (para ambientes muito escuros)
+        if condicoes.get('extremamente_escura', False):
+            try:
+                # Clarear imagem
+                imagem_clareada = cv2.convertScaleAbs(imagem_rgb, alpha=1.5, beta=30)
+                hog_brightened = face_recognition.face_locations(imagem_clareada, model="hog", number_of_times_to_upsample=3)
+                if hog_brightened:
+                    face_locations.extend(hog_brightened)
+                    modelos_usados.append("HOG+Brightened")
+            except Exception as e:
+                print(f"⚠️ Erro no modelo HOG+Brightened: {e}")
+        
+        # Remover duplicatas e escolher a melhor face
+        if face_locations:
+            # Agrupar faces similares
+            faces_unicas = []
+            for face in face_locations:
+                is_duplicate = False
+                for face_unica in faces_unicas:
+                    # Calcular sobreposição
+                    top1, right1, bottom1, left1 = face
+                    top2, right2, bottom2, left2 = face_unica
+                    
+                    # Calcular área de interseção
+                    x_overlap = max(0, min(right1, right2) - max(left1, left2))
+                    y_overlap = max(0, min(bottom1, bottom2) - max(top1, top2))
+                    intersection = x_overlap * y_overlap
+                    
+                    # Calcular área de união
+                    area1 = (right1 - left1) * (bottom1 - top1)
+                    area2 = (right2 - left2) * (bottom2 - top2)
+                    union = area1 + area2 - intersection
+                    
+                    # Se sobreposição > 50%, considerar duplicata
+                    if union > 0 and intersection / union > 0.5:
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    faces_unicas.append(face)
+            
+            print(f"🎯 Faces detectadas por: {', '.join(modelos_usados)}")
+            resultado = faces_unicas[:1]  # Retornar apenas a primeira face única
+        else:
+            resultado = []
+        
+        # Salvar no cache
+        if img_hash:
+            face_detection_cache[img_hash] = {
+                'faces': resultado,
+                'timestamp': time.time(),
+                'modelos': modelos_usados
+            }
+            limpar_cache()  # Limpar cache se necessário
+        
+        return resultado
+        
+    except Exception as e:
+        print(f"⚠️ Erro na detecção múltipla: {e}")
+        return []
+
 def processar_imagem_facial_melhorada(imagem_base64):
     """
-    VERSÃO MELHORADA da função processar_imagem_facial com normalização de iluminação
-    Substitua a função original por esta versão
+    VERSÃO ULTRA MELHORADA da função processar_imagem_facial com detecção múltipla e normalização avançada
     """
     try:
         print("🚀 Iniciando processamento facial melhorado...")
@@ -824,11 +1498,24 @@ def processar_imagem_facial_melhorada(imagem_base64):
         condicoes = detectar_condicoes_iluminacao(imagem_rgb)
         print(f"🔍 Condições detectadas: {condicoes}")
         
+        # Armazenar condições para uso posterior na busca
+        processar_imagem_facial_melhorada._ultima_condicao = condicoes
+        
         # 2. Calcular qualidade original
         qualidade_original = calcular_qualidade_imagem(imagem_rgb)
         
-        # 3. Aplicar normalização de iluminação
-        imagem_normalizada = normalizar_iluminacao(imagem_rgb)
+        # 3. Aplicar normalização de iluminação baseada nas condições
+        if condicoes.get('extremamente_escura', False):
+            print("🌙 Aplicando normalização ML para ambiente extremamente escuro")
+            imagem_normalizada = normalizar_iluminacao_ml(imagem_rgb)
+            # Aplicar melhoria adicional de contraste
+            imagem_normalizada = melhorar_contraste_escuro(imagem_normalizada)
+        elif condicoes.get('muito_escura', False):
+            print("🌚 Aplicando normalização ML para ambiente escuro")
+            imagem_normalizada = normalizar_iluminacao_ml(imagem_rgb)
+        else:
+            print("☀️ Aplicando normalização ML padrão")
+            imagem_normalizada = normalizar_iluminacao_ml(imagem_rgb)
         
         # 4. Calcular qualidade após normalização
         qualidade_normalizada = calcular_qualidade_imagem(imagem_normalizada)
@@ -843,34 +1530,60 @@ def processar_imagem_facial_melhorada(imagem_base64):
         
         # ============================================================
         
-        # Detecção de faces otimizada
-        face_locations = face_recognition.face_locations(imagem_final, model="hog", number_of_times_to_upsample=1)
+        # Detecção de faces com múltiplos modelos simultâneos
+        print("🔧 Iniciando detecção com múltiplos modelos...")
+        face_locations = detectar_faces_multiplos_modelos(imagem_final, condicoes)
         
         if not face_locations:
-            # Tentar com imagem menor se não detectar (fallback)
-            if altura > 240 or largura > 320:
-                imagem_menor = cv2.resize(imagem_final, (320, 240))
-                face_locations = face_recognition.face_locations(imagem_menor, model="hog", number_of_times_to_upsample=1)
-                if face_locations:
-                    # Ajustar coordenadas para imagem original
-                    scale_x = imagem_final.shape[1] / 320
-                    scale_y = imagem_final.shape[0] / 240
-                    face_locations = [(int(top * scale_y), int(right * scale_x), 
-                                     int(bottom * scale_y), int(left * scale_x)) for top, right, bottom, left in face_locations]
-                    print("🔍 Face detectada na imagem redimensionada")
+            # Fallback: tentar com imagem original se não encontrou
+            print("🔧 Fallback: tentando com imagem original...")
+            face_locations = detectar_faces_multiplos_modelos(imagem_rgb, condicoes)
         
         if not face_locations:
-            # ===== MELHORIA ADICIONAL: Tentar com diferentes parâmetros =====
-            if qualidade_original < 0.4:  # Imagem de baixa qualidade
-                print("🔧 Tentando detecção com parâmetros alternativos...")
-                face_locations = face_recognition.face_locations(
-                    imagem_final, 
-                    model="hog", 
-                    number_of_times_to_upsample=2  # Mais upsamples para imagens ruins
-                )
+            # Sistema de fallback inteligente
+            print("🔧 Iniciando sistema de fallback inteligente...")
+            
+            # Fallback 1: Tentar com imagem clareada artificialmente
+            if condicoes.get('extremamente_escura', False):
+                print("🔧 Fallback 1: Clareando imagem artificialmente...")
+                imagem_clareada = cv2.convertScaleAbs(imagem_rgb, alpha=2.0, beta=50)
+                face_locations = detectar_faces_multiplos_modelos(imagem_clareada, condicoes)
+            
+            # Fallback 2: Tentar com diferentes resoluções
+            if not face_locations:
+                print("🔧 Fallback 2: Tentando diferentes resoluções...")
+                for scale in [0.5, 0.75, 1.25, 1.5]:
+                    try:
+                        altura, largura = imagem_rgb.shape[:2]
+                        nova_altura = int(altura * scale)
+                        nova_largura = int(largura * scale)
+                        if nova_altura > 50 and nova_largura > 50:
+                            imagem_escalada = cv2.resize(imagem_rgb, (nova_largura, nova_altura))
+                            face_locations = detectar_faces_multiplos_modelos(imagem_escalada, condicoes)
+                            if face_locations:
+                                # Ajustar coordenadas de volta
+                                scale_x = largura / nova_largura
+                                scale_y = altura / nova_altura
+                                face_locations = [(int(top * scale_y), int(right * scale_x), 
+                                                 int(bottom * scale_y), int(left * scale_x)) for top, right, bottom, left in face_locations]
+                                print(f"✅ Face detectada com escala {scale}")
+                                break
+                    except Exception as e:
+                        print(f"⚠️ Erro no fallback de escala {scale}: {e}")
+            
+            # Fallback 3: Tentar com filtros de realce
+            if not face_locations:
+                print("🔧 Fallback 3: Aplicando filtros de realce...")
+                try:
+                    # Aplicar filtro de realce de bordas
+                    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                    imagem_realcada = cv2.filter2D(imagem_rgb, -1, kernel)
+                    face_locations = detectar_faces_multiplos_modelos(imagem_realcada, condicoes)
+                except Exception as e:
+                    print(f"⚠️ Erro no fallback de realce: {e}")
             
             if not face_locations:
-                return None, "Nenhuma face detectada. Verifique iluminação e posicionamento."
+                return None, "Nenhuma face detectada após todas as tentativas. Verifique iluminação e posicionamento. Tente melhorar a iluminação do ambiente."
         
         if len(face_locations) > 1:
             return None, "Múltiplas faces detectadas. Use uma imagem com apenas uma face."
@@ -903,12 +1616,22 @@ def processar_imagem_facial_melhorada(imagem_base64):
         if np.allclose(encoding, 0, atol=1e-5):
             return None, "Encoding de baixa qualidade. Melhore a iluminação."
         
-        # ===== MELHORIA: Validação dinâmica baseada na qualidade =====
+        # ===== MELHORIA: Validação dinâmica baseada na qualidade e condições de iluminação =====
         qualidade_minima_encoding = 0.005
+        
+        # Ajustar limites baseado na qualidade e condições de iluminação
         if qualidade_normalizada > 0.7:
             qualidade_minima_encoding = 0.003  # Menos rigoroso para imagens de boa qualidade
         elif qualidade_normalizada < 0.3:
             qualidade_minima_encoding = 0.008  # Mais rigoroso para imagens ruins
+        
+        # Ajustar ainda mais para ambientes escuros
+        if condicoes.get('extremamente_escura', False):
+            qualidade_minima_encoding = 0.002  # Muito menos rigoroso para ambientes extremamente escuros
+            print("🌙 Ajustando validação para ambiente extremamente escuro")
+        elif condicoes.get('muito_escura', False):
+            qualidade_minima_encoding = 0.003  # Menos rigoroso para ambientes escuros
+            print("🌚 Ajustando validação para ambiente escuro")
         
         if np.var(encoding) < qualidade_minima_encoding:
             return None, f"Encoding muito uniforme (var: {np.var(encoding):.6f}). Verifique a qualidade da imagem."
@@ -998,8 +1721,21 @@ def buscar_funcionario_por_facial(imagem_base64):
                 distancia = face_recognition.face_distance([encoding_armazenado], encoding_atual)[0]
                 confianca_final = 1 - distancia
                 
-                # Armazenar candidato se estiver acima do mínimo
-                if confianca_final >= confianca_minima:
+                # Ajustar confiança mínima baseado nas condições de iluminação
+                confianca_minima_ajustada = confianca_minima
+                
+                # Se a imagem foi processada com normalização agressiva, reduzir um pouco o limite
+                if hasattr(processar_imagem_facial_melhorada, '_ultima_condicao'):
+                    condicoes = processar_imagem_facial_melhorada._ultima_condicao
+                    if condicoes.get('extremamente_escura', False):
+                        confianca_minima_ajustada = max(0.4, confianca_minima - 0.1)  # Reduzir 0.1 mas não menos que 0.4
+                        print(f"🌙 Ajustando confiança mínima para ambiente escuro: {confianca_minima_ajustada:.2f}")
+                    elif condicoes.get('muito_escura', False):
+                        confianca_minima_ajustada = max(0.45, confianca_minima - 0.05)  # Reduzir 0.05 mas não menos que 0.45
+                        print(f"🌚 Ajustando confiança mínima para ambiente escuro: {confianca_minima_ajustada:.2f}")
+                
+                # Armazenar candidato se estiver acima do mínimo ajustado
+                if confianca_final >= confianca_minima_ajustada:
                     candidatos.append({
                         'numero_registro': numero_registro,
                         'nome': nome,
@@ -1066,6 +1802,398 @@ def registrar_uso_facial(numero_registro):
         
     except Exception as e:
         print(f"Erro ao registrar uso facial: {e}")
+
+# ========================================
+# SISTEMA DE ANALYTICS E RELATÓRIOS AVANÇADOS
+# ========================================
+
+def obter_estatisticas_gerais():
+    """Obtém estatísticas gerais do sistema"""
+    print("DEBUG: FUNÇÃO obter_estatisticas_gerais CHAMADA!")
+    try:
+        print("DEBUG: Iniciando obter_estatisticas_gerais")
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        print("DEBUG: Conexão estabelecida")
+        
+        # Estatísticas básicas
+        print("DEBUG: Executando query de funcionários")
+        cursor.execute("SELECT COUNT(*) FROM funcionarios WHERE ativo = TRUE")
+        total_funcionarios = cursor.fetchone()[0]
+        print(f"DEBUG: Total funcionários: {total_funcionarios}")
+        
+        print("DEBUG: Executando query de acessos hoje")
+        cursor.execute("SELECT COUNT(*) FROM acessos_funcionarios WHERE data_acesso = CURDATE()")
+        acessos_hoje = cursor.fetchone()[0]
+        print(f"DEBUG: Acessos hoje: {acessos_hoje}")
+        
+        print("DEBUG: Executando query de acessos ontem")
+        cursor.execute("SELECT COUNT(*) FROM acessos_funcionarios WHERE data_acesso = DATE_SUB(CURDATE(), INTERVAL 1 DAY)")
+        acessos_ontem = cursor.fetchone()[0]
+        print(f"DEBUG: Acessos ontem: {acessos_ontem}")
+        
+        # Funcionários mais ativos hoje
+        cursor.execute("""
+            SELECT f.nome, f.departamento, COUNT(*) as total_acessos
+            FROM acessos_funcionarios a
+            JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE a.data_acesso = CURDATE()
+            GROUP BY a.numero_registro, f.nome, f.departamento
+            ORDER BY total_acessos DESC
+            LIMIT 5
+        """)
+        funcionarios_ativos = cursor.fetchall()
+        
+        # Horários de pico
+        cursor.execute("""
+            SELECT HOUR(hora_acesso) as hora, COUNT(*) as total
+            FROM acessos_funcionarios
+            WHERE data_acesso = CURDATE()
+            GROUP BY HOUR(hora_acesso)
+            ORDER BY total DESC
+            LIMIT 5
+        """)
+        horarios_pico = cursor.fetchall()
+        
+        # Departamentos mais ativos
+        cursor.execute("""
+            SELECT f.departamento, COUNT(*) as total_acessos
+            FROM acessos_funcionarios a
+            JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE a.data_acesso = CURDATE()
+            GROUP BY f.departamento
+            ORDER BY total_acessos DESC
+        """)
+        departamentos_ativos = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        resultado = {
+            'total_funcionarios': total_funcionarios,
+            'acessos_hoje': acessos_hoje,
+            'acessos_ontem': acessos_ontem,
+            'funcionarios_ativos': funcionarios_ativos,
+            'horarios_pico': horarios_pico,
+            'departamentos_ativos': departamentos_ativos
+        }
+        
+        print(f"DEBUG: Resultado final: {resultado}")
+        return resultado
+        
+    except Exception as e:
+        print(f"DEBUG: Erro ao obter estatísticas: {e}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
+        return None
+
+def obter_analise_padroes(data_inicio, data_fim):
+    """Analisa padrões de acesso no período especificado"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Padrões por dia da semana
+        cursor.execute("""
+            SELECT 
+                DAYNAME(data_acesso) as dia_semana,
+                COUNT(*) as total_acessos,
+                AVG(TIME_TO_SEC(hora_acesso)) as hora_media_segundos
+            FROM acessos_funcionarios
+            WHERE data_acesso BETWEEN %s AND %s
+            GROUP BY DAYOFWEEK(data_acesso), DAYNAME(data_acesso)
+            ORDER BY DAYOFWEEK(data_acesso)
+        """, (data_inicio, data_fim))
+        padroes_semana = cursor.fetchall()
+        
+        # Padrões por hora do dia
+        cursor.execute("""
+            SELECT 
+                HOUR(hora_acesso) as hora,
+                COUNT(*) as total_acessos,
+                COUNT(CASE WHEN tipo_acesso = 'entrada' THEN 1 END) as entradas,
+                COUNT(CASE WHEN tipo_acesso = 'saida' THEN 1 END) as saidas
+            FROM acessos_funcionarios
+            WHERE data_acesso BETWEEN %s AND %s
+            GROUP BY HOUR(hora_acesso)
+            ORDER BY hora
+        """, (data_inicio, data_fim))
+        padroes_hora = cursor.fetchall()
+        
+        # Análise de pontualidade
+        cursor.execute("""
+            SELECT 
+                f.departamento,
+                COUNT(*) as total_funcionarios,
+                AVG(CASE 
+                    WHEN a.hora_acesso <= '08:30:00' THEN 1 
+                    ELSE 0 
+                END) as pontualidade_entrada,
+                AVG(CASE 
+                    WHEN a.hora_acesso >= '17:00:00' THEN 1 
+                    ELSE 0 
+                END) as pontualidade_saida
+            FROM acessos_funcionarios a
+            JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE a.data_acesso BETWEEN %s AND %s
+            AND a.tipo_acesso = 'entrada'
+            GROUP BY f.departamento
+        """, (data_inicio, data_fim))
+        analise_pontualidade = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'padroes_semana': padroes_semana,
+            'padroes_hora': padroes_hora,
+            'analise_pontualidade': analise_pontualidade
+        }
+        
+    except Exception as e:
+        print(f"Erro na análise de padrões: {e}")
+        return None
+
+def obter_relatorio_produtividade(data_inicio, data_fim, departamento=None):
+    """Gera relatório de produtividade por funcionário"""
+    import sys
+    try:
+        sys.stderr.write(f"DEBUG: Gerando relatório de produtividade - {data_inicio} a {data_fim}, departamento: {departamento}\n")
+        sys.stderr.flush()
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Query simplificada - busca dados básicos primeiro
+        query_base = """
+            SELECT 
+                f.numero_registro,
+                f.nome,
+                f.departamento,
+                f.cargo,
+                COUNT(*) as total_acessos,
+                COUNT(CASE WHEN a.tipo_acesso = 'entrada' THEN 1 END) as entradas,
+                COUNT(CASE WHEN a.tipo_acesso = 'saida' THEN 1 END) as saidas,
+                COALESCE(AVG(CASE 
+                    WHEN a.tipo_acesso = 'entrada' AND a.hora_acesso <= '08:30:00' THEN 1.0 
+                    ELSE 0.0 
+                END), 0.0) as pontualidade_entrada,
+                COALESCE(AVG(CASE 
+                    WHEN a.tipo_acesso = 'saida' AND a.hora_acesso >= '17:00:00' THEN 1.0 
+                    ELSE 0.0 
+                END), 0.0) as pontualidade_saida
+            FROM acessos_funcionarios a
+            JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE a.data_acesso BETWEEN %s AND %s
+        """
+        
+        params_base = [data_inicio, data_fim]
+        
+        if departamento:
+            query_base += " AND f.departamento = %s"
+            params_base.append(departamento)
+        
+        query_base += """
+            GROUP BY f.numero_registro, f.nome, f.departamento, f.cargo
+            ORDER BY total_acessos DESC
+        """
+        
+        cursor.execute(query_base, params_base)
+        relatorio_base = cursor.fetchall()
+        
+        sys.stderr.write(f"DEBUG: Relatório base gerado com {len(relatorio_base)} registros\n")
+        if relatorio_base:
+            sys.stderr.write(f"DEBUG: Primeiro registro base: {relatorio_base[0]}\n")
+        sys.stderr.flush()
+        
+        # Agora buscar primeira entrada e última saída do mesmo dia mais recente para cada funcionário
+        relatorio_formatado = []
+        sys.stderr.write(f"DEBUG: Iniciando loop para processar {len(relatorio_base)} funcionários\n")
+        sys.stderr.flush()
+        for row in relatorio_base:
+            numero_registro = row[0]
+            
+            # Buscar o dia mais recente com entrada
+            cursor.execute("""
+                SELECT MAX(data_acesso) 
+                FROM acessos_funcionarios 
+                WHERE numero_registro = %s 
+                  AND tipo_acesso = 'entrada'
+                  AND data_acesso BETWEEN %s AND %s
+            """, (numero_registro, data_inicio, data_fim))
+            
+            resultado_dia = cursor.fetchone()
+            dia_mais_recente_entrada = resultado_dia[0] if resultado_dia else None
+            
+            sys.stderr.write(f"DEBUG: Funcionário {numero_registro} - Dia mais recente com entrada: {dia_mais_recente_entrada}\n")
+            sys.stderr.flush()
+            
+            primeira_entrada = None
+            ultima_saida = None
+            
+            if dia_mais_recente_entrada:
+                sys.stderr.write(f"DEBUG: Funcionário {numero_registro} - Processando dia {dia_mais_recente_entrada}\n")
+                sys.stderr.flush()
+                # Buscar primeira entrada desse dia
+                cursor.execute("""
+                    SELECT MIN(hora_acesso) 
+                    FROM acessos_funcionarios 
+                    WHERE numero_registro = %s 
+                      AND tipo_acesso = 'entrada'
+                      AND data_acesso = %s
+                """, (numero_registro, dia_mais_recente_entrada))
+                
+                resultado_entrada = cursor.fetchone()
+                if resultado_entrada and resultado_entrada[0]:
+                    primeira_entrada = resultado_entrada[0]
+                
+                # Buscar última saída do MESMO dia (não de outro dia)
+                # Primeiro, verificar todas as saídas desse dia para debug
+                cursor.execute("""
+                    SELECT hora_acesso, data_acesso
+                    FROM acessos_funcionarios 
+                    WHERE numero_registro = %s 
+                      AND tipo_acesso = 'saida'
+                      AND data_acesso = %s
+                    ORDER BY hora_acesso DESC
+                """, (numero_registro, dia_mais_recente_entrada))
+                
+                todas_saidas = cursor.fetchall()
+                print(f"DEBUG: Funcionário {numero_registro} - Todas as saídas do dia {dia_mais_recente_entrada}: {todas_saidas}")
+                
+                # Agora buscar a última saída
+                cursor.execute("""
+                    SELECT MAX(hora_acesso) 
+                    FROM acessos_funcionarios 
+                    WHERE numero_registro = %s 
+                      AND tipo_acesso = 'saida'
+                      AND data_acesso = %s
+                """, (numero_registro, dia_mais_recente_entrada))
+                
+                resultado_saida = cursor.fetchone()
+                sys.stderr.write(f"DEBUG: Funcionário {numero_registro} - Buscando saída do dia {dia_mais_recente_entrada}, resultado: {resultado_saida}\n")
+                sys.stderr.flush()
+                if resultado_saida and resultado_saida[0]:
+                    ultima_saida = resultado_saida[0]
+                    sys.stderr.write(f"DEBUG: Funcionário {numero_registro} - Última saída encontrada: {ultima_saida}\n")
+                else:
+                    sys.stderr.write(f"DEBUG: Funcionário {numero_registro} - Nenhuma saída encontrada para o dia {dia_mais_recente_entrada}\n")
+                sys.stderr.flush()
+            
+            # Montar a linha do relatório
+            row_list = []
+            for item in row[:7]:  # Dados básicos (até cargo)
+                row_list.append(item)
+            
+            # Adicionar primeira entrada e última saída
+            row_list.append(primeira_entrada)
+            row_list.append(ultima_saida)
+            
+            # Adicionar pontualidade
+            row_list.append(row[7])  # pontualidade_entrada
+            row_list.append(row[8])  # pontualidade_saida
+            
+            relatorio_formatado.append(row_list)
+        
+        sys.stderr.write(f"DEBUG: Relatório formatado com {len(relatorio_formatado)} registros\n")
+        if relatorio_formatado and len(relatorio_formatado) > 0:
+            sys.stderr.write(f"DEBUG: Primeiro registro exemplo: {relatorio_formatado[0]}\n")
+            sys.stderr.write(f"DEBUG: Primeira entrada do primeiro registro: {relatorio_formatado[0][7] if len(relatorio_formatado[0]) > 7 else 'N/A'}\n")
+            sys.stderr.write(f"DEBUG: Última saída do primeiro registro: {relatorio_formatado[0][8] if len(relatorio_formatado[0]) > 8 else 'N/A'}\n")
+        sys.stderr.flush()
+        
+        # Converter para formato serializável
+        relatorio_final = []
+        for row in relatorio_formatado:
+            row_list = []
+            for item in row:
+                # Converter timedelta, time, datetime para string
+                if isinstance(item, timedelta):
+                    # Converter timedelta para string HH:MM:SS
+                    total_seconds = int(item.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    row_list.append(f"{hours:02d}:{minutes:02d}:{seconds:02d}")
+                elif isinstance(item, (datetime, date)):
+                    row_list.append(item.isoformat())
+                elif hasattr(item, 'strftime'):  # Para objetos time
+                    row_list.append(str(item))
+                elif item is None:
+                    row_list.append(None)
+                else:
+                    row_list.append(item)
+            relatorio_final.append(row_list)
+        
+        cursor.close()
+        conn.close()
+        
+        return relatorio_final
+        
+    except Exception as e:
+        print(f"Erro no relatório de produtividade: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def obter_tendencias_acesso(dias=30):
+    """Obtém tendências de acesso dos últimos dias"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Tendências diárias
+        cursor.execute("""
+            SELECT 
+                data_acesso as data,
+                COUNT(*) as total_acessos,
+                COUNT(CASE WHEN tipo_acesso = 'entrada' THEN 1 END) as entradas,
+                COUNT(CASE WHEN tipo_acesso = 'saida' THEN 1 END) as saidas,
+                COUNT(DISTINCT numero_registro) as funcionarios_unicos
+            FROM acessos_funcionarios
+            WHERE data_acesso >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+            GROUP BY data_acesso
+            ORDER BY data
+        """, (dias,))
+        tendencias_diarias = cursor.fetchall()
+        
+        # Métodos de acesso mais usados
+        cursor.execute("""
+            SELECT 
+                metodo_acesso,
+                COUNT(*) as total_uso,
+                ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM acessos_funcionarios WHERE data_acesso >= DATE_SUB(CURDATE(), INTERVAL %s DAY)), 2) as percentual
+            FROM acessos_funcionarios
+            WHERE data_acesso >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+            GROUP BY metodo_acesso
+            ORDER BY total_uso DESC
+        """, (dias, dias))
+        metodos_acesso = cursor.fetchall()
+        
+        # Acessos por departamento
+        cursor.execute("""
+            SELECT 
+                f.departamento,
+                COUNT(*) as total_acessos
+            FROM acessos_funcionarios a
+            JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE a.data_acesso >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+            GROUP BY f.departamento
+            ORDER BY total_acessos DESC
+        """, (dias,))
+        acessos_departamento = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'tendencias_diarias': tendencias_diarias,
+            'metodos_acesso': metodos_acesso,
+            'acessos_departamento': acessos_departamento
+        }
+        
+    except Exception as e:
+        print(f"Erro nas tendências: {e}")
+        return None
 
 # ========================================
 # FUNÇÕES DE REGISTRO DE ACESSO
@@ -1345,16 +2473,51 @@ def detectar_face():
         imagem = cv2.imdecode(imagem_array, cv2.IMREAD_COLOR)
         imagem_rgb = cv2.cvtColor(imagem, cv2.COLOR_BGR2RGB)
         
-        # Detectar faces com configuração otimizada
+        # Detectar faces com configuração otimizada para ambientes escuros
+        face_locations = []
+        
+        # Tentativa 1: Detecção padrão
         face_locations = face_recognition.face_locations(imagem_rgb, model="hog", number_of_times_to_upsample=1)
         
         if not face_locations:
+            # Tentativa 2: Com mais upsamples
+            face_locations = face_recognition.face_locations(imagem_rgb, model="hog", number_of_times_to_upsample=2)
+        
+        if not face_locations:
+            # Tentativa 3: Com modelo CNN (melhor para ambientes escuros)
+            try:
+                face_locations = face_recognition.face_locations(imagem_rgb, model="cnn", number_of_times_to_upsample=1)
+            except Exception as e:
+                print(f"⚠️ Modelo CNN não disponível: {e}")
+        
+        if not face_locations:
+            # Tentativa 4: Com imagem redimensionada
+            altura, largura = imagem_rgb.shape[:2]
+            if altura > 240 or largura > 320:
+                imagem_menor = cv2.resize(imagem_rgb, (320, 240))
+                face_locations = face_recognition.face_locations(imagem_menor, model="hog", number_of_times_to_upsample=2)
+                if face_locations:
+                    # Ajustar coordenadas
+                    scale_x = largura / 320
+                    scale_y = altura / 240
+                    face_locations = [(int(top * scale_y), int(right * scale_x), 
+                                     int(bottom * scale_y), int(left * scale_x)) for top, right, bottom, left in face_locations]
+        
+        if not face_locations:
+            # Calcular informações de iluminação mesmo sem face detectada
+            gray = cv2.cvtColor(imagem_rgb, cv2.COLOR_RGB2GRAY)
+            brightness = np.mean(gray)
+            
             return jsonify({
                 'success': True,
                 'detecao': {
                     'tem_face': False,
                     'face_centralizada': False,
                     'tamanho_adequado': False
+                },
+                'lighting_info': {
+                    'brightness': float(brightness),
+                    'level': 'very_poor' if brightness < 30 else 'poor' if brightness < 60 else 'good'
                 }
             })
         
@@ -1381,6 +2544,10 @@ def detectar_face():
         
         tamanho_adequado = 0.05 <= proporcao_face <= 0.5  # Entre 5% e 50% da imagem
         
+        # Calcular informações de iluminação
+        gray = cv2.cvtColor(imagem_rgb, cv2.COLOR_RGB2GRAY)
+        brightness = np.mean(gray)
+        
         return jsonify({
             'success': True,
             'detecao': {
@@ -1390,6 +2557,10 @@ def detectar_face():
                 'proporcao_face': proporcao_face,
                 'centro_face': [centro_face_x, centro_face_y],
                 'centro_imagem': [centro_imagem_x, centro_imagem_y]
+            },
+            'lighting_info': {
+                'brightness': float(brightness),
+                'level': 'very_poor' if brightness < 30 else 'poor' if brightness < 60 else 'good'
             }
         })
         
@@ -1614,43 +2785,195 @@ def dashboard_data():
         # Alertas
         alertas = []
         
-        # Verificar funcionários que não entraram hoje
-        cursor.execute("""
-            SELECT f.nome 
-            FROM funcionarios f
-            WHERE f.ativo = TRUE 
-            AND NOT EXISTS (
-                SELECT 1 FROM acessos_funcionarios a 
-                WHERE a.numero_registro = f.numero_registro 
-                AND DATE(a.data_acesso) = CURDATE()
+        try:
+            # Verificar funcionários que não entraram hoje
+            cursor.execute("""
+                SELECT f.nome 
+                FROM funcionarios f
+                WHERE f.ativo = TRUE 
+                AND NOT EXISTS (
+                    SELECT 1 FROM acessos_funcionarios a 
+                    WHERE a.numero_registro = f.numero_registro 
+                    AND DATE(a.data_acesso) = CURDATE()
+                    AND a.tipo_acesso = 'entrada'
+                )
+            """)
+            ausentes = cursor.fetchall()
+            
+            if ausentes:
+                alertas.append({
+                    'tipo': 'warning',
+                    'icon': 'user-times',
+                    'titulo': 'Funcionários Ausentes',
+                    'mensagem': f'{len(ausentes)} funcionário(s) ainda não entraram hoje'
+                })
+        except Exception as e:
+            print(f"Erro ao verificar ausentes: {e}")
+        
+        try:
+            # Buscar horário padrão do sistema
+            cursor.execute("""
+                SELECT hora_entrada, tolerancia_entrada 
+                FROM configuracoes_horarios 
+                WHERE ativo = TRUE 
+                LIMIT 1
+            """)
+            config_padrao = cursor.fetchone()
+            hora_padrao = str(config_padrao[0]) if config_padrao and config_padrao[0] else '08:00:00'
+            tolerancia_padrao = int(config_padrao[1]) if config_padrao and config_padrao[1] else 15
+            
+            # Verificar atrasos (entrada depois do horário + tolerância)
+            # Usar uma abordagem mais simples: buscar todos os acessos de hoje e calcular em Python
+            cursor.execute("""
+                SELECT f.nome, f.numero_registro, a.hora_acesso, 
+                       f.horario_entrada, f.tolerancia_entrada
+                FROM acessos_funcionarios a
+                JOIN funcionarios f ON a.numero_registro = f.numero_registro
+                WHERE DATE(a.data_acesso) = CURDATE()
                 AND a.tipo_acesso = 'entrada'
-            )
-        """)
-        ausentes = cursor.fetchall()
+                ORDER BY a.hora_acesso DESC
+            """)
+            todos_acessos = cursor.fetchall()
+            
+            atrasos = []
+            antecipacoes = []
+            
+            for row in todos_acessos:
+                nome, numero_registro, hora_acesso, horario_entrada_func, tolerancia_entrada_func = row
+                
+                # Usar horário do funcionário ou padrão
+                horario_entrada = horario_entrada_func if horario_entrada_func else hora_padrao
+                tolerancia_entrada = int(tolerancia_entrada_func) if tolerancia_entrada_func else tolerancia_padrao
+                
+                # Converter hora_acesso para time object
+                if isinstance(hora_acesso, str):
+                    try:
+                        hora_acesso_dt = datetime.strptime(hora_acesso, '%H:%M:%S').time()
+                    except:
+                        try:
+                            hora_acesso_dt = datetime.strptime(hora_acesso, '%H:%M').time()
+                        except:
+                            hora_acesso_dt = datetime.now().time()
+                elif isinstance(hora_acesso, timedelta):
+                    # Se for timedelta, converter para time
+                    total_seconds = int(hora_acesso.total_seconds())
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    hora_acesso_dt = datetime.strptime(f"{hours:02d}:{minutes:02d}:{seconds:02d}", '%H:%M:%S').time()
+                elif hasattr(hora_acesso, 'hour'):  # Já é um time object
+                    hora_acesso_dt = hora_acesso
+                else:
+                    hora_acesso_dt = datetime.now().time()
+                
+                # Converter horario_entrada para time object
+                if isinstance(horario_entrada, str):
+                    try:
+                        horario_entrada_dt = datetime.strptime(horario_entrada, '%H:%M:%S').time()
+                    except:
+                        try:
+                            horario_entrada_dt = datetime.strptime(horario_entrada, '%H:%M').time()
+                        except:
+                            horario_entrada_dt = datetime.strptime('08:00:00', '%H:%M:%S').time()
+                elif isinstance(horario_entrada, timedelta):
+                    # Se for timedelta, converter para time
+                    total_seconds = int(horario_entrada.total_seconds())
+                    # Garantir que não ultrapasse 24 horas
+                    total_seconds = total_seconds % 86400
+                    hours = total_seconds // 3600
+                    minutes = (total_seconds % 3600) // 60
+                    seconds = total_seconds % 60
+                    horario_entrada_dt = datetime.strptime(f"{hours:02d}:{minutes:02d}:{seconds:02d}", '%H:%M:%S').time()
+                elif hasattr(horario_entrada, 'hour') and hasattr(horario_entrada, 'minute'):  # Já é um time object
+                    horario_entrada_dt = horario_entrada
+                else:
+                    # Fallback: usar horário padrão
+                    horario_entrada_dt = datetime.strptime(str(hora_padrao), '%H:%M:%S').time() if isinstance(hora_padrao, str) else datetime.strptime('08:00:00', '%H:%M:%S').time()
+                
+                # Garantir que horario_entrada_dt é realmente um time object
+                if not isinstance(horario_entrada_dt, type(datetime.now().time())):
+                    print(f"⚠️ AVISO: horario_entrada_dt não é time object: {type(horario_entrada_dt)} = {horario_entrada_dt}")
+                    horario_entrada_dt = datetime.strptime('08:00:00', '%H:%M:%S').time()
+                
+                # Calcular hora limite (horário + tolerância)
+                try:
+                    horario_base = datetime.combine(date.today(), horario_entrada_dt)
+                    hora_limite = (horario_base + timedelta(minutes=tolerancia_entrada)).time()
+                except Exception as e:
+                    print(f"⚠️ Erro ao calcular hora_limite: {e}")
+                    print(f"   horario_entrada_dt type: {type(horario_entrada_dt)}, value: {horario_entrada_dt}")
+                    continue  # Pular este acesso se houver erro
+                
+                # Verificar se é atraso
+                if hora_acesso_dt > hora_limite:
+                    atrasos.append((nome, numero_registro, hora_acesso))
+                # Verificar se é antecipação (antes do horário de entrada)
+                elif hora_acesso_dt < horario_entrada_dt:
+                    antecipacoes.append((nome, numero_registro, hora_acesso))
+            
+            # Limitar a 10 resultados
+            atrasos = atrasos[:10]
+            antecipacoes = antecipacoes[:10]
+            
+            if atrasos:
+                nomes_atrasados = [f"{row[0]}" for row in atrasos[:5]]  # Limitar a 5 nomes
+                total_atrasos = len(atrasos)
+                mensagem = f'{total_atrasos} funcionário(s) entraram com atraso hoje'
+                if nomes_atrasados:
+                    mensagem += f': {", ".join(nomes_atrasados)}'
+                    if total_atrasos > 5:
+                        mensagem += f' e mais {total_atrasos - 5}'
+                
+                alertas.append({
+                    'tipo': 'warning',
+                    'icon': 'clock',
+                    'titulo': 'Atrasos Hoje',
+                    'mensagem': mensagem
+                })
+            
+            if antecipacoes:
+                nomes_antecipados = [f"{row[0]}" for row in antecipacoes[:5]]  # Limitar a 5 nomes
+                total_antecipacoes = len(antecipacoes)
+                mensagem = f'{total_antecipacoes} funcionário(s) entraram antes do horário hoje'
+                if nomes_antecipados:
+                    mensagem += f': {", ".join(nomes_antecipados)}'
+                    if total_antecipacoes > 5:
+                        mensagem += f' e mais {total_antecipacoes - 5}'
+                
+                alertas.append({
+                    'tipo': 'info',
+                    'icon': 'clock',
+                    'titulo': 'Antecipações Hoje',
+                    'mensagem': mensagem
+                })
+                
+        except Exception as e:
+            print(f"Erro ao verificar atrasos/antecipações: {e}")
+            import traceback
+            traceback.print_exc()
         
-        if ausentes:
-            alertas.append({
-                'tipo': 'warning',
-                'icon': 'user-times',
-                'titulo': 'Funcionários Ausentes',
-                'mensagem': f'{len(ausentes)} funcionário(s) ainda não entraram hoje'
-            })
+        try:
+            # Verificar acessos suspeitos
+            cursor.execute("""
+                SELECT COUNT(*) FROM acessos_funcionarios 
+                WHERE DATE(data_acesso) = CURDATE()
+                AND TIME(hora_acesso) < '06:00:00'
+            """)
+            acessos_suspeitos = cursor.fetchone()[0]
+            
+            if acessos_suspeitos > 0:
+                alertas.append({
+                    'tipo': 'danger',
+                    'icon': 'exclamation-triangle',
+                    'titulo': 'Acessos Suspeitos',
+                    'mensagem': f'{acessos_suspeitos} acesso(s) antes das 6h'
+                })
+        except Exception as e:
+            print(f"Erro ao verificar acessos suspeitos: {e}")
         
-        # Verificar acessos suspeitos
-        cursor.execute("""
-            SELECT COUNT(*) FROM acessos_funcionarios 
-            WHERE DATE(data_acesso) = CURDATE()
-            AND TIME(hora_acesso) < '06:00:00'
-        """)
-        acessos_suspeitos = cursor.fetchone()[0]
-        
-        if acessos_suspeitos > 0:
-            alertas.append({
-                'tipo': 'danger',
-                'icon': 'exclamation-triangle',
-                'titulo': 'Acessos Suspeitos',
-                'mensagem': f'{acessos_suspeitos} acesso(s) antes das 6h'
-            })
+        print(f"🔔 DEBUG - Total de alertas gerados: {len(alertas)}")
+        for alerta in alertas:
+            print(f"  - {alerta['titulo']}: {alerta['mensagem']}")
         
         cursor.close()
         conn.close()
@@ -1679,6 +3002,11 @@ def index():
     """Página principal de acesso de funcionários"""
     return render_template('index.html')
 
+@app.route('/documentacao')
+def documentacao():
+    """Documentação de apresentação do sistema"""
+    return render_template('documentacao_apresentacao.html')
+
 @app.route('/acesso-facial')
 def acesso_facial():
     """Página de acesso facial para funcionários"""
@@ -1694,14 +3022,19 @@ def acesso_rfid():
     """Página de acesso RFID para funcionários"""
     return render_template('acesso_rfid.html')
 
+@app.route('/acesso-qrcode')
+def acesso_qrcode():
+    """Página de acesso QR Code para funcionários"""
+    return render_template('acesso_qrcode.html')
+
 @app.route('/admin')
-@login_required
+@admin_required
 def admin():
     """Painel administrativo"""
     return render_template('admin.html')
 
 @app.route('/admin/funcionarios')
-@login_required
+@admin_required
 def admin_funcionarios():
     """Gestão de funcionários"""
     return render_template('funcionarios.html')
@@ -2048,62 +3381,80 @@ def exportar_funcionarios():
 @app.route('/api/relatorio-presenca')
 def relatorio_presenca():
     """API para relatório de presença - funcionários presentes e que saíram"""
+    conn = None
+    cursor = None
     try:
         conn = get_simple_connection()
         cursor = conn.cursor()
         
-        # Funcionários presentes agora
+        # Query muito simplificada e otimizada - usar data direta ao invés de DATE()
+        hoje = date.today()
+        
+        # Funcionários presentes agora (entraram hoje e não saíram depois)
+        # Usar subquery simples para encontrar última entrada e última saída
         cursor.execute("""
-            SELECT f.numero_registro, f.nome, f.departamento, f.cargo, f.empresa,
-                   MAX(a.hora_acesso) as ultima_entrada
+            SELECT 
+                f.numero_registro, 
+                f.nome, 
+                f.departamento, 
+                f.cargo, 
+                f.empresa,
+                MAX(CASE WHEN a.tipo_acesso = 'entrada' THEN a.hora_acesso END) as ultima_entrada
             FROM funcionarios f
             INNER JOIN acessos_funcionarios a ON f.numero_registro = a.numero_registro
             WHERE f.ativo = TRUE 
-            AND DATE(a.data_acesso) = CURDATE()
+            AND a.data_acesso = %s
             AND a.tipo_acesso = 'entrada'
             AND NOT EXISTS (
                 SELECT 1 FROM acessos_funcionarios a2 
                 WHERE a2.numero_registro = f.numero_registro 
-                AND DATE(a2.data_acesso) = CURDATE() 
+                AND a2.data_acesso = %s
                 AND a2.tipo_acesso = 'saida'
                 AND a2.hora_acesso > (
                     SELECT MAX(a3.hora_acesso) 
                     FROM acessos_funcionarios a3 
                     WHERE a3.numero_registro = f.numero_registro 
-                    AND DATE(a3.data_acesso) = CURDATE()
+                    AND a3.data_acesso = %s
                     AND a3.tipo_acesso = 'entrada'
                 )
             )
             GROUP BY f.numero_registro, f.nome, f.departamento, f.cargo, f.empresa
             ORDER BY f.nome
-        """)
+            LIMIT 500
+        """, (hoje, hoje, hoje))
         presentes = cursor.fetchall()
         
-        # Funcionários que saíram hoje
+        # Funcionários que saíram hoje (saíram e não entraram depois)
         cursor.execute("""
-            SELECT f.numero_registro, f.nome, f.departamento, f.cargo, f.empresa,
-                   MAX(a.hora_acesso) as ultima_saida
+            SELECT 
+                f.numero_registro, 
+                f.nome, 
+                f.departamento, 
+                f.cargo, 
+                f.empresa,
+                MAX(CASE WHEN a.tipo_acesso = 'saida' THEN a.hora_acesso END) as ultima_saida
             FROM funcionarios f
             INNER JOIN acessos_funcionarios a ON f.numero_registro = a.numero_registro
             WHERE f.ativo = TRUE 
-            AND DATE(a.data_acesso) = CURDATE()
+            AND a.data_acesso = %s
             AND a.tipo_acesso = 'saida'
             AND NOT EXISTS (
                 SELECT 1 FROM acessos_funcionarios a2 
                 WHERE a2.numero_registro = f.numero_registro 
-                AND DATE(a2.data_acesso) = CURDATE() 
+                AND a2.data_acesso = %s
                 AND a2.tipo_acesso = 'entrada'
                 AND a2.hora_acesso > (
                     SELECT MAX(a3.hora_acesso) 
                     FROM acessos_funcionarios a3 
                     WHERE a3.numero_registro = f.numero_registro 
-                    AND DATE(a3.data_acesso) = CURDATE()
+                    AND a3.data_acesso = %s
                     AND a3.tipo_acesso = 'saida'
                 )
             )
             GROUP BY f.numero_registro, f.nome, f.departamento, f.cargo, f.empresa
             ORDER BY f.nome
-        """)
+            LIMIT 500
+        """, (hoje, hoje, hoje))
         sairam = cursor.fetchall()
         
         # Converter para formato JSON
@@ -2129,9 +3480,6 @@ def relatorio_presenca():
                 'ultima_saida': str(s[5]) if s[5] else None
             })
         
-        cursor.close()
-        conn.close()
-        
         return jsonify({
             'success': True,
             'presentes': presentes_json,
@@ -2149,11 +3497,18 @@ def relatorio_presenca():
 
 
 @app.route('/admin/relatorios')
-@login_required
+@admin_required
 def admin_relatorios():
     """Relatórios de acesso"""
     hoje = get_data_atual().strftime('%Y-%m-%d')
     return render_template('relatorios.html', hoje=hoje)
+
+@app.route('/analytics')
+@login_required
+def analytics():
+    """Página de analytics e relatórios avançados"""
+    return render_template('analytics.html')
+
 
 @app.route('/api/relatorios/diario', methods=['GET'])
 @login_required
@@ -2376,10 +3731,103 @@ def listar_funcionarios_relatorio():
         return jsonify({'erro': 'Erro ao listar funcionários'}), 500
 
 @app.route('/admin/configuracoes')
-@login_required
+@admin_required
 def admin_configuracoes():
     """Configurações do sistema"""
     return render_template('configuracoes.html')
+
+@app.route('/api/configuracoes/metodos-acesso', methods=['GET'])
+def get_metodos_acesso():
+    """Buscar métodos de acesso habilitados"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar configuração de métodos de acesso
+        cursor.execute("""
+            SELECT valor FROM configuracoes_acesso 
+            WHERE chave = 'metodos_acesso_habilitados'
+        """)
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result and result['valor']:
+            metodos = json.loads(result['valor'])
+        else:
+            # Padrão: todos os métodos habilitados
+            metodos = {
+                'facial': True,
+                'manual': True,
+                'rfid': True,
+                'qrcode': True
+            }
+        
+        return jsonify({
+            'success': True,
+            'metodos': metodos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar métodos de acesso: {e}")
+        # Retornar padrão em caso de erro
+        return jsonify({
+            'success': True,
+            'metodos': {
+                'facial': True,
+                'manual': True,
+                'rfid': True,
+                'qrcode': True
+            }
+        })
+
+@app.route('/api/configuracoes/metodos-acesso', methods=['POST'])
+@login_required
+def salvar_metodos_acesso():
+    """Salvar métodos de acesso habilitados"""
+    try:
+        data = request.get_json()
+        metodos = data.get('metodos', {})
+        
+        if not metodos:
+            return jsonify({
+                'success': False,
+                'message': 'Dados de métodos não fornecidos'
+            })
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Salvar ou atualizar configuração
+        cursor.execute("""
+            INSERT INTO configuracoes_acesso (chave, valor, descricao)
+            VALUES ('metodos_acesso_habilitados', %s, 'Métodos de acesso habilitados no sistema')
+            ON DUPLICATE KEY UPDATE 
+                valor = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
+        """, (json.dumps(metodos), json.dumps(metodos)))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log da operação
+        log_acesso('CONFIGURACAO', 'Métodos de acesso atualizados', {
+            'metodos': metodos
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Métodos de acesso atualizados com sucesso'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao salvar métodos de acesso: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao salvar configurações'
+        })
 
 def criar_tabelas_configuracoes():
     """Cria tabelas para configurações do sistema"""
@@ -2397,11 +3845,19 @@ def criar_tabelas_configuracoes():
                 tolerancia_entrada INT DEFAULT 15,
                 tolerancia_saida INT DEFAULT 15,
                 dias_semana VARCHAR(50) DEFAULT '1,2,3,4,5',
+                departamento VARCHAR(50) NULL COMMENT 'Departamento específico (NULL = todos os departamentos)',
                 ativo BOOLEAN DEFAULT TRUE,
                 data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )
         """)
+        
+        # Adicionar coluna departamento se não existir (para atualizações)
+        try:
+            cursor.execute("ALTER TABLE configuracoes_horarios ADD COLUMN departamento VARCHAR(50) NULL COMMENT 'Departamento específico (NULL = todos os departamentos)'")
+        except Exception as e:
+            if 'Duplicate column name' not in str(e):
+                print(f"Aviso ao adicionar coluna departamento: {e}")
         
         # Tabela de feriados
         cursor.execute("""
@@ -2489,33 +3945,127 @@ def get_configuracoes_horarios():
 
 @app.route('/api/configuracoes/horarios', methods=['POST'])
 def salvar_configuracoes_horarios():
-    """Salvar configurações de horários"""
+    """Salvar ou atualizar configurações de horários"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
+        
+        # Verificar se é atualização (tem horario_id no corpo)
+        horario_id = data.get('horario_id')
+        is_update = horario_id is not None
+        
         nome_config = data.get('nome_config')
         hora_entrada = data.get('hora_entrada')
         hora_saida = data.get('hora_saida')
         tolerancia_entrada = data.get('tolerancia_entrada', 15)
         tolerancia_saida = data.get('tolerancia_saida', 15)
         dias_semana = data.get('dias_semana', '1,2,3,4,5')
+        departamento = data.get('departamento', None)  # None = todos os departamentos
+        
+        if not nome_config or not hora_entrada or not hora_saida:
+            return jsonify({'success': False, 'error': 'Campos obrigatórios não fornecidos'}), 400
         
         conn = get_simple_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
-            INSERT INTO configuracoes_horarios 
-            (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana))
+        if is_update:
+            # Atualizar horário existente
+            cursor.execute("SELECT id FROM configuracoes_horarios WHERE id = %s AND ativo = TRUE", (horario_id,))
+            if not cursor.fetchone():
+                cursor.close()
+                conn.close()
+                return jsonify({'success': False, 'error': 'Horário não encontrado'}), 404
+            
+            cursor.execute("""
+                UPDATE configuracoes_horarios 
+                SET nome_config = %s, 
+                    hora_entrada = %s, 
+                    hora_saida = %s, 
+                    tolerancia_entrada = %s, 
+                    tolerancia_saida = %s, 
+                    dias_semana = %s, 
+                    departamento = %s,
+                    data_atualizacao = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana, departamento, horario_id))
+            
+            message = 'Horário atualizado com sucesso!'
+        else:
+            # Criar novo horário
+            cursor.execute("""
+                INSERT INTO configuracoes_horarios 
+                (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana, departamento)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana, departamento))
+            
+            message = 'Configuração salva com sucesso!'
         
         conn.commit()
         cursor.close()
         conn.close()
         
-        return jsonify({'success': True, 'message': 'Configuração salva com sucesso!'})
+        return jsonify({'success': True, 'message': message})
         
     except Exception as e:
-        print(f"Erro ao salvar horários: {e}")
+        print(f"Erro ao salvar/atualizar horários: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/configuracoes/horarios/<int:horario_id>/atualizar', methods=['POST'])
+def atualizar_configuracoes_horarios(horario_id):
+    """Atualizar configurações de horários"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
+        
+        nome_config = data.get('nome_config')
+        hora_entrada = data.get('hora_entrada')
+        hora_saida = data.get('hora_saida')
+        tolerancia_entrada = data.get('tolerancia_entrada', 15)
+        tolerancia_saida = data.get('tolerancia_saida', 15)
+        dias_semana = data.get('dias_semana', '1,2,3,4,5')
+        departamento = data.get('departamento', None)
+        
+        if not nome_config or not hora_entrada or not hora_saida:
+            return jsonify({'success': False, 'error': 'Campos obrigatórios não fornecidos'}), 400
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se o horário existe
+        cursor.execute("SELECT id FROM configuracoes_horarios WHERE id = %s AND ativo = TRUE", (horario_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Horário não encontrado'}), 404
+        
+        cursor.execute("""
+            UPDATE configuracoes_horarios 
+            SET nome_config = %s, 
+                hora_entrada = %s, 
+                hora_saida = %s, 
+                tolerancia_entrada = %s, 
+                tolerancia_saida = %s, 
+                dias_semana = %s, 
+                departamento = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana, departamento, horario_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ Horário {horario_id} atualizado com sucesso")
+        return jsonify({'success': True, 'message': 'Horário atualizado com sucesso!'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao atualizar horário {horario_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/configuracoes/feriados', methods=['GET'])
@@ -2606,6 +4156,61 @@ def excluir_feriado(feriado_id):
         
     except Exception as e:
         print(f"Erro ao excluir feriado: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/configuracoes/horarios/<int:horario_id>', methods=['PUT', 'PATCH'])
+def atualizar_horario(horario_id):
+    """Atualizar configuração de horário"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'Dados não fornecidos'}), 400
+            
+        nome_config = data.get('nome_config')
+        hora_entrada = data.get('hora_entrada')
+        hora_saida = data.get('hora_saida')
+        tolerancia_entrada = data.get('tolerancia_entrada', 15)
+        tolerancia_saida = data.get('tolerancia_saida', 15)
+        dias_semana = data.get('dias_semana', '1,2,3,4,5')
+        departamento = data.get('departamento', None)
+        
+        if not nome_config or not hora_entrada or not hora_saida:
+            return jsonify({'success': False, 'error': 'Campos obrigatórios não fornecidos'}), 400
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se o horário existe
+        cursor.execute("SELECT id FROM configuracoes_horarios WHERE id = %s AND ativo = TRUE", (horario_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Horário não encontrado'}), 404
+        
+        cursor.execute("""
+            UPDATE configuracoes_horarios 
+            SET nome_config = %s, 
+                hora_entrada = %s, 
+                hora_saida = %s, 
+                tolerancia_entrada = %s, 
+                tolerancia_saida = %s, 
+                dias_semana = %s, 
+                departamento = %s,
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (nome_config, hora_entrada, hora_saida, tolerancia_entrada, tolerancia_saida, dias_semana, departamento, horario_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"✅ Horário {horario_id} atualizado com sucesso")
+        return jsonify({'success': True, 'message': 'Horário atualizado com sucesso!'})
+        
+    except Exception as e:
+        print(f"❌ Erro ao atualizar horário {horario_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/configuracoes/horarios/<int:horario_id>', methods=['DELETE'])
@@ -2745,15 +4350,139 @@ def excluir_horario_dia(horario_id, dia_semana):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/dashboard')
-@login_required
+@admin_required
 def admin_dashboard():
     """Dashboard administrativo"""
     print("DEBUG: Acessando rota /admin/dashboard")
     return render_template('dashboard.html')
 
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Dashboard - rota alternativa que redireciona para /admin/dashboard"""
+    print("DEBUG: Acessando rota /dashboard - redirecionando para /admin/dashboard")
+    return render_template('dashboard.html')
+
 # ========================================
 # ROTAS DE AUTENTICAÇÃO
 # ========================================
+
+# Rota de alteração de senha (definida antes para garantir registro)
+@app.route('/api/admin/alterar-senha', methods=['POST'])
+def alterar_senha_admin():
+    """Alterar senha do administrador logado"""
+    # Verificar autenticação manualmente
+    if 'admin_logged_in' not in session or not session['admin_logged_in']:
+        return jsonify({
+            'success': False,
+            'message': 'Acesso negado. Faça login.',
+            'redirect': '/admin/login'
+        }), 401
+    
+    try:
+        data = request.get_json()
+        senha_atual = data.get('senha_atual', '').strip()
+        nova_senha = data.get('nova_senha', '').strip()
+        
+        if not senha_atual or not nova_senha:
+            return jsonify({
+                'success': False,
+                'message': 'Senha atual e nova senha são obrigatórias.'
+            }), 400
+        
+        if len(nova_senha) < 6:
+            return jsonify({
+                'success': False,
+                'message': 'A nova senha deve ter no mínimo 6 caracteres.'
+            }), 400
+        
+        # Obter username da sessão
+        username = session.get('admin_username')
+        if not username:
+            return jsonify({
+                'success': False,
+                'message': 'Sessão inválida. Faça login novamente.'
+            }), 401
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Verificar senha atual
+        cursor.execute("""
+            SELECT password_hash 
+            FROM admin_users 
+            WHERE username = %s AND ativo = TRUE
+        """, (username,))
+        
+        user = cursor.fetchone()
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': 'Usuário não encontrado.'
+            }), 404
+        
+        # Verificar se a senha atual está correta
+        if not verify_password(user[0], senha_atual):
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': 'Senha atual incorreta.'
+            }), 401
+        
+        # Verificar se a nova senha é diferente da atual
+        if verify_password(user[0], nova_senha):
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': 'A nova senha deve ser diferente da senha atual.'
+            }), 400
+        
+        # Gerar hash da nova senha
+        nova_senha_hash = hash_password(nova_senha)
+        
+        # Atualizar senha no banco
+        cursor.execute("""
+            UPDATE admin_users 
+            SET password_hash = %s 
+            WHERE username = %s
+        """, (nova_senha_hash, username))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Log da alteração
+        log_acesso('ALTERAR_SENHA', f'Senha alterada para usuário {username}', {
+            'ip': request.remote_addr,
+            'username': username
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Senha alterada com sucesso!'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao alterar senha: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Erro interno ao alterar senha. Tente novamente.'
+        }), 500
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Logout administrativo"""
+    session.clear()
+    log_acesso('LOGOUT_ADMIN', 'Logout administrativo', {
+        'ip': request.remote_addr
+    })
+    return redirect(url_for('admin_login'))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -2770,38 +4499,80 @@ def admin_login():
             conn = get_simple_connection()
             cursor = conn.cursor()
             
+            # Verificar se a coluna role existe
             cursor.execute("""
-                SELECT username, password_hash, nome_completo 
-                FROM admin_users 
-                WHERE username = %s AND ativo = TRUE
-            """, (username,))
+                SELECT COUNT(*) 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'admin_users' 
+                AND COLUMN_NAME = 'role'
+            """)
+            role_exists = cursor.fetchone()[0] > 0
+            
+            if role_exists:
+                cursor.execute("""
+                    SELECT username, password_hash, nome_completo, COALESCE(role, 'admin') as role 
+                    FROM admin_users 
+                    WHERE username = %s AND ativo = TRUE
+                """, (username,))
+            else:
+                cursor.execute("""
+                    SELECT username, password_hash, nome_completo 
+                    FROM admin_users 
+                    WHERE username = %s AND ativo = TRUE
+                """, (username,))
             
             user = cursor.fetchone()
-            cursor.close()
-            conn.close()
             
-            print(f"DEBUG: User found: {user}")
-            print(f"DEBUG: Stored password: {user[1]}")
-            print(f"DEBUG: Provided password: {password}")
-            print(f"DEBUG: Verify result: {verify_password(user[1], password)}")
+            print(f"DEBUG LOGIN: Usuário buscado: {username}")
+            print(f"DEBUG LOGIN: Usuário encontrado: {user is not None}")
+            if user:
+                print(f"DEBUG LOGIN: Username: {user[0]}, Nome: {user[2]}")
+                if role_exists:
+                    print(f"DEBUG LOGIN: Role: {user[3]}")
+                print(f"DEBUG LOGIN: Verificando senha...")
+                senha_valida = verify_password(user[1], password)
+                print(f"DEBUG LOGIN: Senha válida: {senha_valida}")
             
             if user and verify_password(user[1], password):
+                print(f"DEBUG LOGIN: Login bem-sucedido! Criando sessão...")
                 session['admin_logged_in'] = True
                 session['admin_username'] = user[0]
                 session['admin_nome'] = user[2]
-                session['admin_id'] = 1  # Adicionar ID da sessão
+                session['admin_role'] = user[3] if role_exists and len(user) > 3 else 'admin'  # Adicionar role na sessão
+                session['admin_id'] = 1
                 
-                print(f"DEBUG: Login bem-sucedido para {username}")
-                print(f"DEBUG: Session data: {dict(session)}")
+                print(f"DEBUG LOGIN: Sessão criada: {dict(session)}")
+                
+                # Atualizar último login
+                cursor.execute("""
+                    UPDATE admin_users 
+                    SET ultimo_login = NOW() 
+                    WHERE username = %s
+                """, (username,))
+                
+                conn.commit()
+                cursor.close()
+                conn.close()
                 
                 log_acesso('LOGIN_ADMIN', f'Login administrativo: {username}', {
                     'username': username,
+                    'role': session.get('admin_role', 'admin'),
                     'ip': request.remote_addr
                 })
                 
-                return redirect(url_for('admin'))
+                print(f"DEBUG LOGIN: Redirecionando... Role: {session.get('admin_role')}")
+                # Redirecionar baseado no role
+                if session.get('admin_role') == 'portaria':
+                    print(f"DEBUG LOGIN: Redirecionando para relatório online")
+                    return redirect(url_for('relatorio_online_sistema_real'))
+                else:
+                    print(f"DEBUG LOGIN: Redirecionando para admin")
+                    return redirect(url_for('admin'))
             else:
-                print(f"DEBUG: Login falhou para {username}")
+                print(f"DEBUG LOGIN: Login falhou - usuário ou senha inválidos")
+                cursor.close()
+                conn.close()
                 return render_template('admin_login.html', 
                                     error='Usuário ou senha inválidos')
                 
@@ -2812,14 +4583,231 @@ def admin_login():
     
     return render_template('admin_login.html')
 
-@app.route('/admin/logout')
-def admin_logout():
-    """Logout administrativo"""
-    session.clear()
-    log_acesso('LOGOUT_ADMIN', 'Logout administrativo', {
-        'ip': request.remote_addr
-    })
-    return redirect(url_for('admin_login'))
+# ========================================
+# GESTÃO DE USUÁRIOS ADMINISTRATIVOS
+# ========================================
+
+@app.route('/admin/usuarios')
+@admin_required
+def admin_usuarios():
+    """Listar usuários administrativos"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT id, username, nome_completo, email, role, ativo, 
+                   ultimo_login, data_criacao
+            FROM admin_users
+            ORDER BY data_criacao DESC
+        """)
+        
+        usuarios = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return render_template('admin_usuarios.html', usuarios=usuarios)
+    except Exception as e:
+        print(f"Erro ao listar usuários: {e}")
+        flash('Erro ao carregar usuários', 'danger')
+        return redirect(url_for('admin'))
+
+@app.route('/api/usuarios', methods=['POST'])
+@admin_required
+def criar_usuario():
+    """Criar novo usuário administrativo"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        nome_completo = data.get('nome_completo', '').strip()
+        email = data.get('email', '').strip()
+        role = data.get('role', 'portaria').strip()
+        
+        if not username or not password or not nome_completo:
+            return jsonify({'success': False, 'message': 'Campos obrigatórios: usuário, senha e nome completo'}), 400
+        
+        if role not in ['admin', 'portaria']:
+            return jsonify({'success': False, 'message': 'Role inválido. Use: admin ou portaria'}), 400
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se usuário já existe
+        cursor.execute("SELECT id FROM admin_users WHERE username = %s", (username,))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuário já existe'}), 400
+        
+        # Criar usuário
+        password_hash = hash_password(password)
+        cursor.execute("""
+            INSERT INTO admin_users (username, password_hash, nome_completo, email, role, ativo)
+            VALUES (%s, %s, %s, %s, %s, TRUE)
+        """, (username, password_hash, nome_completo, email, role))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        log_acesso('CRIAR_USUARIO', f'Usuário criado: {username} (role: {role})', {
+            'username': username,
+            'role': role,
+            'criado_por': session.get('admin_username')
+        })
+        
+        return jsonify({'success': True, 'message': 'Usuário criado com sucesso'})
+    except Exception as e:
+        print(f"Erro ao criar usuário: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao criar usuário: {str(e)}'}), 500
+
+@app.route('/api/usuarios/<int:user_id>', methods=['PUT'])
+@admin_required
+def atualizar_usuario(user_id):
+    """Atualizar usuário administrativo"""
+    try:
+        data = request.get_json()
+        nome_completo = data.get('nome_completo', '').strip()
+        email = data.get('email', '').strip()
+        role = data.get('role', '').strip()
+        ativo = data.get('ativo', True)
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Não permitir desativar o próprio usuário
+        cursor.execute("SELECT username FROM admin_users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+        
+        if user[0] == session.get('admin_username') and not ativo:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Não é possível desativar seu próprio usuário'}), 400
+        
+        # Atualizar
+        updates = []
+        params = []
+        
+        if nome_completo:
+            updates.append("nome_completo = %s")
+            params.append(nome_completo)
+        if email:
+            updates.append("email = %s")
+            params.append(email)
+        if role and role in ['admin', 'portaria']:
+            updates.append("role = %s")
+            params.append(role)
+        if 'ativo' in data:
+            updates.append("ativo = %s")
+            params.append(ativo)
+        
+        if updates:
+            params.append(user_id)
+            cursor.execute(f"""
+                UPDATE admin_users 
+                SET {', '.join(updates)}
+                WHERE id = %s
+            """, params)
+            
+            conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        log_acesso('ATUALIZAR_USUARIO', f'Usuário atualizado: ID {user_id}', {
+            'user_id': user_id,
+            'atualizado_por': session.get('admin_username')
+        })
+        
+        return jsonify({'success': True, 'message': 'Usuário atualizado com sucesso'})
+    except Exception as e:
+        print(f"Erro ao atualizar usuário: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao atualizar usuário: {str(e)}'}), 500
+
+@app.route('/api/usuarios/<int:user_id>/senha', methods=['PUT'])
+@admin_required
+def alterar_senha_usuario(user_id):
+    """Alterar senha de usuário"""
+    try:
+        data = request.get_json()
+        nova_senha = data.get('nova_senha', '').strip()
+        
+        if not nova_senha or len(nova_senha) < 6:
+            return jsonify({'success': False, 'message': 'Senha deve ter no mínimo 6 caracteres'}), 400
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se usuário existe
+        cursor.execute("SELECT username FROM admin_users WHERE id = %s", (user_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+        
+        # Atualizar senha
+        password_hash = hash_password(nova_senha)
+        cursor.execute("""
+            UPDATE admin_users 
+            SET password_hash = %s
+            WHERE id = %s
+        """, (password_hash, user_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        log_acesso('ALTERAR_SENHA', f'Senha alterada para usuário ID {user_id}', {
+            'user_id': user_id,
+            'alterado_por': session.get('admin_username')
+        })
+        
+        return jsonify({'success': True, 'message': 'Senha alterada com sucesso'})
+    except Exception as e:
+        print(f"Erro ao alterar senha: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao alterar senha: {str(e)}'}), 500
+
+@app.route('/api/usuarios/<int:user_id>', methods=['DELETE'])
+@admin_required
+def deletar_usuario(user_id):
+    """Deletar usuário administrativo"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Não permitir deletar o próprio usuário
+        cursor.execute("SELECT username FROM admin_users WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if not user:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+        
+        if user[0] == session.get('admin_username'):
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'message': 'Não é possível deletar seu próprio usuário'}), 400
+        
+        # Deletar usuário
+        cursor.execute("DELETE FROM admin_users WHERE id = %s", (user_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        log_acesso('DELETAR_USUARIO', f'Usuário deletado: ID {user_id}', {
+            'user_id': user_id,
+            'deletado_por': session.get('admin_username')
+        })
+        
+        return jsonify({'success': True, 'message': 'Usuário deletado com sucesso'})
+    except Exception as e:
+        print(f"Erro ao deletar usuário: {e}")
+        return jsonify({'success': False, 'message': f'Erro ao deletar usuário: {str(e)}'}), 500
 
 ### marcar inicio
 
@@ -2828,7 +4816,7 @@ def admin_logout():
 # ========================================
 
 @app.route('/api/funcionarios/importar', methods=['POST'])
-@login_required
+@admin_required
 def importar_funcionarios():
     """Importar funcionários em massa via CSV/Excel"""
     try:
@@ -3034,16 +5022,22 @@ def download_template():
 # ========================================
 
 @app.route('/admin/cadastro-facial')
-@login_required
+@admin_required
 def admin_cadastro_facial():
     """Página de cadastro facial"""
     return render_template('cadastro_facial.html')
 
 @app.route('/admin/cadastro-rfid')
-@login_required
+@admin_required
 def admin_cadastro_rfid():
     """Página de cadastro RFID"""
     return render_template('cadastro_rfid.html')
+
+@app.route('/admin/cadastro-qrcode')
+@admin_required
+def admin_cadastro_qrcode():
+    """Página de cadastro QR Code"""
+    return render_template('cadastro_qrcode.html')
 
 @app.route('/api/funcionarios/sem-facial', methods=['GET'])
 @login_required
@@ -3335,6 +5329,12 @@ def cadastrar_rfid():
                 'message': 'Número de registro e código RFID são obrigatórios'
             })
         
+        # Normalizar código RFID (remover espaços, dois pontos, converter para maiúsculas)
+        # Isso garante consistência entre cadastro e busca
+        codigo_rfid_original = codigo_rfid
+        codigo_rfid = codigo_rfid.strip().upper().replace(':', '').replace(' ', '').replace('\t', '').replace('\n', '').replace('-', '')
+        print(f"📝 Cadastrando RFID: '{codigo_rfid_original}' → normalizado: '{codigo_rfid}'")
+        
         # Verificar se funcionário existe
         conn = get_simple_connection()
         cursor = conn.cursor()
@@ -3483,6 +5483,105 @@ def remover_rfid():
             'message': 'Erro interno do servidor'
         })
 
+@app.route('/api/funcionarios/importar-rfid', methods=['POST'])
+@login_required
+def importar_rfid():
+    """Importar múltiplos cadastros RFID de uma vez"""
+    try:
+        data = request.get_json()
+        if not data or 'lista' not in data:
+            return jsonify({'success': False, 'message': 'Dados inválidos'})
+            
+        lista = data.get('lista', [])
+        resultados = {
+            'sucesso': 0,
+            'erro': 0,
+            'detalhes': []
+        }
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        for item in lista:
+            registro = str(item.get('numero_registro', '')).strip()
+            rfid = str(item.get('codigo_rfid', '')).strip()
+            tipo = item.get('tipo_cartao', 'cartao')
+            desc = item.get('descricao', '')
+            
+            if not registro or not rfid:
+                resultados['erro'] += 1
+                resultados['detalhes'].append({'registro': registro, 'status': 'Erro', 'mensagem': 'Registro ou RFID vazio'})
+                continue
+                
+            try:
+                # Verificar se funcionário existe
+                cursor.execute("SELECT nome FROM funcionarios WHERE numero_registro = %s AND ativo = TRUE", (registro,))
+                func = cursor.fetchone()
+                if not func:
+                    resultados['erro'] += 1
+                    resultados['detalhes'].append({'registro': registro, 'status': 'Erro', 'mensagem': 'Funcionário não encontrado'})
+                    continue
+                
+                # Verificar se RFID já existe (ativo) em outro funcionário
+                cursor.execute("SELECT numero_registro FROM cartoes_rfid WHERE codigo_rfid = %s AND ativo = TRUE AND numero_registro != %s", (rfid, registro))
+                if cursor.fetchone():
+                    resultados['erro'] += 1
+                    resultados['detalhes'].append({'registro': registro, 'status': 'Erro', 'mensagem': f'RFID {rfid} já em uso'})
+                    continue
+                
+                # Verificar se já existe registro para este funcionário
+                cursor.execute("SELECT id, ativo FROM cartoes_rfid WHERE numero_registro = %s", (registro,))
+                existente = cursor.fetchone()
+                
+                if existente:
+                    # Se já existe e está ativo, verificar se é o mesmo RFID
+                    # (Se for o mesmo, pulamos. Se for diferente, avisamos que já tem RFID ativo)
+                    if existente[1]: # ativo
+                        resultados['erro'] += 1
+                        resultados['detalhes'].append({'registro': registro, 'status': 'Erro', 'mensagem': 'Funcionário já possui RFID ativo'})
+                        continue
+                    else:
+                        # Se estava inativo, atualizamos para o novo e reativamos
+                        cursor.execute("""
+                            UPDATE cartoes_rfid 
+                            SET codigo_rfid = %s, tipo_cartao = %s, descricao = %s, ativo = TRUE, data_cadastro = CURRENT_TIMESTAMP
+                            WHERE numero_registro = %s
+                        """, (rfid, tipo, desc, registro))
+                else:
+                    # Inserir novo
+                    cursor.execute("""
+                        INSERT INTO cartoes_rfid (numero_registro, codigo_rfid, tipo_cartao, descricao)
+                        VALUES (%s, %s, %s, %s)
+                    """, (registro, rfid, tipo, desc))
+                
+                resultados['sucesso'] += 1
+                resultados['detalhes'].append({'registro': registro, 'status': 'Sucesso', 'mensagem': 'Cadastrado'})
+                
+            except Exception as e:
+                resultados['erro'] += 1
+                resultados['detalhes'].append({'registro': registro, 'status': 'Erro', 'mensagem': str(e)})
+                
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        if resultados['sucesso'] > 0:
+            log_acesso('IMPORTACAO_RFID', f'Importados {resultados["sucesso"]} RFIDs em massa', {
+                'total_tentativas': len(lista),
+                'sucessos': resultados['sucesso']
+            })
+            
+        return jsonify({
+            'success': True,
+            'message': f'Processamento concluído: {resultados["sucesso"]} sucessos, {resultados["erro"]} erros',
+            'resultados': resultados
+        })
+        
+    except Exception as e:
+        print(f"Erro na importação em massa: {e}")
+        return jsonify({'success': False, 'message': f'Erro interno: {str(e)}'})
+
+
 @app.route('/api/funcionarios/com-rfid', methods=['GET'])
 @login_required
 def get_funcionarios_com_rfid():
@@ -3525,6 +5624,274 @@ def get_funcionarios_com_rfid():
         return jsonify({
             'success': False,
             'message': 'Erro interno do servidor'
+        })
+
+@app.route('/api/rfid/buscar-registro', methods=['POST'])
+def buscar_registro_por_rfid():
+    """Buscar número de registro pelo código RFID (público para acesso)"""
+    try:
+        data = request.get_json()
+        codigo_rfid = data.get('codigo_rfid')
+        
+        if not codigo_rfid:
+            return jsonify({
+                'success': False,
+                'message': 'Código RFID é obrigatório'
+            })
+        
+        # Normalizar código RFID (remover espaços, dois pontos, converter para maiúsculas)
+        codigo_rfid_original = codigo_rfid
+        codigo_rfid = codigo_rfid.strip().upper().replace(':', '').replace(' ', '').replace('\t', '').replace('\n', '').replace('-', '').replace('.', '')
+        print(f"🔍 Buscando RFID: '{codigo_rfid_original}' → normalizado: '{codigo_rfid}'")
+        
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        # Buscar número de registro pelo código RFID normalizado
+        cursor.execute("""
+            SELECT numero_registro 
+            FROM cartoes_rfid 
+            WHERE codigo_rfid = %s AND ativo = TRUE
+        """, (codigo_rfid,))
+        
+        resultado = cursor.fetchone()
+        
+        # Se não encontrou, tentar variações do código
+        if not resultado:
+            # Tentar buscar com formato com dois pontos (ex: 69:4C:A0:03)
+            if len(codigo_rfid) >= 8:
+                codigo_com_dois_pontos = ':'.join([codigo_rfid[i:i+2] for i in range(0, len(codigo_rfid), 2)])
+                print(f"🔄 Tentando buscar também com formato: '{codigo_com_dois_pontos}'")
+                cursor.execute("""
+                    SELECT numero_registro 
+                    FROM cartoes_rfid 
+                    WHERE codigo_rfid = %s AND ativo = TRUE
+                """, (codigo_com_dois_pontos,))
+                resultado = cursor.fetchone()
+                
+                # Se encontrou com dois pontos, atualizar para formato normalizado
+                if resultado:
+                    print(f"⚠️ Encontrado com formato antigo '{codigo_com_dois_pontos}', atualizando para formato normalizado")
+                    cursor.execute("""
+                        UPDATE cartoes_rfid 
+                        SET codigo_rfid = %s 
+                        WHERE codigo_rfid = %s AND ativo = TRUE
+                    """, (codigo_rfid, codigo_com_dois_pontos))
+                    conn.commit()
+            
+            # Se ainda não encontrou, tentar busca case-insensitive
+            if not resultado:
+                print(f"🔄 Tentando busca case-insensitive...")
+                cursor.execute("""
+                    SELECT numero_registro, codigo_rfid 
+                    FROM cartoes_rfid 
+                    WHERE UPPER(REPLACE(REPLACE(REPLACE(codigo_rfid, ':', ''), '-', ''), ' ', '')) = %s 
+                    AND ativo = TRUE
+                """, (codigo_rfid,))
+                resultado_temp = cursor.fetchone()
+                if resultado_temp:
+                    numero_registro_encontrado = resultado_temp[0]
+                    codigo_cadastrado = resultado_temp[1]
+                    print(f"✅ Encontrado com busca case-insensitive: '{codigo_cadastrado}' → normalizando...")
+                    # Atualizar para formato normalizado
+                    cursor.execute("""
+                        UPDATE cartoes_rfid 
+                        SET codigo_rfid = %s 
+                        WHERE numero_registro = %s AND ativo = TRUE
+                    """, (codigo_rfid, numero_registro_encontrado))
+                    conn.commit()
+                    resultado = (numero_registro_encontrado,)
+        
+        cursor.close()
+        conn.close()
+        
+        if resultado:
+            numero_registro = resultado[0]
+            print(f"✅ RFID '{codigo_rfid}' encontrado para registro {numero_registro}")
+            return jsonify({
+                'success': True,
+                'numero_registro': numero_registro,
+                'codigo_rfid': codigo_rfid
+            })
+        else:
+            # Listar códigos RFID cadastrados para debug
+            conn_debug = get_simple_connection()
+            cursor_debug = conn_debug.cursor()
+            cursor_debug.execute("""
+                SELECT codigo_rfid, numero_registro 
+                FROM cartoes_rfid 
+                WHERE ativo = TRUE 
+                LIMIT 10
+            """)
+            codigos_cadastrados = cursor_debug.fetchall()
+            cursor_debug.close()
+            conn_debug.close()
+            
+            print(f"⚠️ RFID '{codigo_rfid}' não encontrado na base")
+            print(f"📋 Códigos cadastrados (amostra): {codigos_cadastrados}")
+            print(f"📋 Código original recebido: '{codigo_rfid_original}'")
+            return jsonify({
+                'success': False,
+                'message': f'Código RFID não encontrado. Código buscado: {codigo_rfid}',
+                'codigo_buscado': codigo_rfid,
+                'codigo_original': codigo_rfid_original,
+                'codigos_cadastrados': [c[0] for c in codigos_cadastrados]
+            })
+        
+    except Exception as e:
+        print(f"Erro ao buscar registro por RFID: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao buscar registro'
+        })
+
+@app.route('/api/funcionarios/gerar-qrcode', methods=['GET'])
+@login_required
+def gerar_qrcode_funcionario():
+    """Gerar QR Code para um funcionário"""
+    try:
+        numero_registro = request.args.get('numero_registro')
+        
+        if not numero_registro:
+            return jsonify({
+                'success': False,
+                'message': 'Número de registro obrigatório'
+            })
+        
+        # Verificar se funcionário existe
+        conn = get_simple_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT numero_registro, nome, departamento, cargo, empresa
+            FROM funcionarios 
+            WHERE numero_registro = %s AND ativo = TRUE
+        """, (numero_registro,))
+        
+        funcionario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not funcionario:
+            return jsonify({
+                'success': False,
+                'message': 'Funcionário não encontrado ou inativo'
+            })
+        
+        # Criar dados do QR code com nome e departamento
+        qr_data = {
+            'numero_registro': funcionario['numero_registro'],
+            'nome': funcionario['nome'],
+            'departamento': funcionario['departamento'],
+            'tipo': 'acesso_funcionario'
+        }
+        
+        qr_text = json.dumps(qr_data)
+        
+        # Gerar QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_text)
+        qr.make(fit=True)
+        
+        # Criar imagem do QR code
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Converter para RGB se necessário (algumas versões retornam em modo diferente)
+        if qr_img.mode != 'RGB':
+            qr_img = qr_img.convert('RGB')
+        
+        # Criar imagem final com texto (nome e departamento)
+        # Calcular tamanho da imagem final
+        qr_width, qr_height = qr_img.size
+        padding = 20
+        text_height = 80
+        final_width = qr_width + (padding * 2)
+        final_height = qr_height + text_height + (padding * 2)
+        
+        # Criar imagem final
+        final_img = Image.new('RGB', (final_width, final_height), 'white')
+        
+        # Colar QR code no centro superior (usar tupla de 4 elementos para garantir compatibilidade)
+        qr_x = (final_width - qr_width) // 2
+        qr_y = padding
+        final_img.paste(qr_img, (qr_x, qr_y, qr_x + qr_width, qr_y + qr_height))
+        
+        # Adicionar texto (nome e departamento)
+        draw = ImageDraw.Draw(final_img)
+        
+        # Tentar carregar fonte, se não conseguir usar padrão
+        font_large = None
+        font_small = None
+        
+        # Lista de caminhos de fontes possíveis
+        font_paths = [
+            ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+            ("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+            ("/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf"),
+        ]
+        
+        for bold_path, regular_path in font_paths:
+            try:
+                if os.path.exists(bold_path) and os.path.exists(regular_path):
+                    font_large = ImageFont.truetype(bold_path, 20)
+                    font_small = ImageFont.truetype(regular_path, 16)
+                    break
+            except:
+                continue
+        
+        # Se não encontrou fontes, usar padrão
+        if font_large is None:
+            font_large = ImageFont.load_default()
+            font_small = ImageFont.load_default()
+        
+        # Texto do nome
+        nome_text = funcionario['nome']
+        try:
+            text_bbox = draw.textbbox((0, 0), nome_text, font=font_large)
+            text_width = text_bbox[2] - text_bbox[0]
+        except:
+            # Fallback para método antigo
+            text_width = draw.textlength(nome_text, font=font_large) if hasattr(draw, 'textlength') else len(nome_text) * 10
+        text_x = (final_width - text_width) // 2
+        text_y = qr_height + padding + 10
+        draw.text((text_x, text_y), nome_text, fill='black', font=font_large)
+        
+        # Texto do departamento
+        dept_text = funcionario['departamento']
+        try:
+            text_bbox = draw.textbbox((0, 0), dept_text, font=font_small)
+            text_width = text_bbox[2] - text_bbox[0]
+        except:
+            # Fallback para método antigo
+            text_width = draw.textlength(dept_text, font=font_small) if hasattr(draw, 'textlength') else len(dept_text) * 8
+        text_x = (final_width - text_width) // 2
+        text_y = text_y + 30
+        draw.text((text_x, text_y), dept_text, fill='gray', font=font_small)
+        
+        # Converter para base64
+        img_buffer = io.BytesIO()
+        final_img.save(img_buffer, format='PNG')
+        img_str = base64.b64encode(img_buffer.getvalue()).decode()
+        
+        return jsonify({
+            'success': True,
+            'qrcode_image': f'data:image/png;base64,{img_str}',
+            'qrcode_text': qr_text,
+            'funcionario': funcionario
+        })
+        
+    except Exception as e:
+        print(f"Erro ao gerar QR code: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao gerar QR code'
         })
 
 def determinar_tipo_acesso_automatico(numero_registro):
@@ -3944,50 +6311,202 @@ def gerar_pdf_relatorio_funcionario(relatorio):
 # ========================================
 
 @app.route('/relatorio-online-sistema-real')
+@portaria_or_admin_required
 def relatorio_online_sistema_real():
     """Página do relatório online que consome dados do sistema real"""
     return render_template('relatorio_online_sistema_real.html')
 
+@app.route('/api/debug-ip')
+def debug_ip():
+    """Rota de debug para verificar qual IP está sendo detectado"""
+    detected_ip = get_host_ip()
+    sistema_url = get_sistema_real_url()
+    
+    # Tentar obter mais informações
+    import subprocess
+    hostname_ips = ""
+    try:
+        result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            hostname_ips = result.stdout.strip()
+    except:
+        pass
+    
+    return jsonify({
+        'detected_ip': detected_ip,
+        'sistema_real_url': sistema_url,
+        'hostname_ips': hostname_ips,
+        'env_sistema_real_ip': os.getenv('SISTEMA_REAL_IP'),
+        'env_sistema_real_url': os.getenv('SISTEMA_REAL_URL'),
+        'env_sistema_real_port': os.getenv('SISTEMA_REAL_PORT'),
+    })
+
+# Cache simples para relatório online (evitar queries repetidas muito rapidamente)
+_relatorio_cache = {
+    'data': None,
+    'timestamp': 0,
+    'cache_ttl': 15  # Cache por 15 segundos
+}
+
 @app.route('/api/relatorio-online-data')
 def relatorio_online_data():
-    """API que fornece dados para o relatório online"""
+    """API que fornece dados para o relatório online - usa dados locais com cache"""
+    global _relatorio_cache
+    
+    # Verificar cache primeiro
+    agora = time.time()
+    if _relatorio_cache['data'] and (agora - _relatorio_cache['timestamp']) < _relatorio_cache['cache_ttl']:
+        print('📦 Retornando dados do cache (evitando nova query)')
+        return jsonify(_relatorio_cache['data'])
+    
+    conn = None
+    cursor = None
     try:
-        # Buscar dados do sistema real via API
-        import requests
-        import urllib3
+        # Usar dados locais diretamente do banco de dados
+        # Isso evita timeout e problemas de conexão com sistema externo
+        print('🔍 Buscando dados do banco...')
+        conn = get_simple_connection()
+        cursor = conn.cursor()
         
-        # Desabilitar avisos de SSL
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        hoje = date.today()
         
-        # URL do sistema real
-        SISTEMA_REAL_URL = 'https://10.17.94.125:8444'
+        # Query muito simplificada - buscar últimos acessos de cada funcionário hoje
+        # Primeiro, buscar última ação de cada funcionário hoje
+        cursor.execute("""
+            SELECT 
+                a.numero_registro,
+                f.nome,
+                f.departamento,
+                f.cargo,
+                f.empresa,
+                a.tipo_acesso,
+                MAX(a.hora_acesso) as ultima_hora
+            FROM acessos_funcionarios a
+            INNER JOIN funcionarios f ON a.numero_registro = f.numero_registro
+            WHERE f.ativo = TRUE
+            AND a.data_acesso = %s
+            GROUP BY a.numero_registro, f.nome, f.departamento, f.cargo, f.empresa, a.tipo_acesso
+            ORDER BY a.numero_registro, ultima_hora DESC
+            LIMIT 1000
+        """, (hoje,))
         
-        # Fazer requisição para o sistema real
-        response = requests.get(
-            f'{SISTEMA_REAL_URL}/api/relatorio-presenca',
-            verify=False,
-            timeout=10
-        )
+        todos_acessos = cursor.fetchall()
         
-        if response.status_code == 200:
-            return jsonify(response.json())
-        else:
-            return jsonify({
-                'error': f'Erro ao acessar sistema real: {response.status_code}',
-                'presentes': [],
-                'saidos': [],
-                'total_presentes': 0,
-                'total_saidos': 0
-            })
+        # Fechar cursor e conexão ANTES de processar dados (liberar conexão mais rápido)
+        cursor.close()
+        cursor = None
+        conn.close()
+        conn = None
+        print('✅ Conexão fechada após query (antes de processar)')
+        
+        # Processar em Python para determinar presentes e saídos
+        ultima_acao = {}
+        for acesso in todos_acessos:
+            registro = acesso[0]
+            tipo = acesso[5]
+            hora = acesso[6]
             
-    except Exception as e:
+            if registro not in ultima_acao:
+                ultima_acao[registro] = {
+                    'numero_registro': registro,
+                    'nome': acesso[1],
+                    'departamento': acesso[2],
+                    'cargo': acesso[3],
+                    'empresa': acesso[4],
+                    'tipo': tipo,
+                    'hora': hora
+                }
+            else:
+                # Se já existe, comparar horas
+                if hora > ultima_acao[registro]['hora']:
+                    ultima_acao[registro]['tipo'] = tipo
+                    ultima_acao[registro]['hora'] = hora
+        
+        # Separar presentes e saídos
+        presentes = []
+        sairam = []
+        
+        for registro, dados in ultima_acao.items():
+            if dados['tipo'] == 'entrada':
+                presentes.append({
+                    'numero_registro': dados['numero_registro'],
+                    'nome': dados['nome'],
+                    'departamento': dados['departamento'],
+                    'cargo': dados['cargo'],
+                    'empresa': dados['empresa'],
+                    'ultima_entrada': str(dados['hora'])
+                })
+            elif dados['tipo'] == 'saida':
+                sairam.append({
+                    'numero_registro': dados['numero_registro'],
+                    'nome': dados['nome'],
+                    'departamento': dados['departamento'],
+                    'cargo': dados['cargo'],
+                    'empresa': dados['empresa'],
+                    'ultima_saida': str(dados['hora'])
+                })
+        
+        # Ordenar por nome
+        presentes.sort(key=lambda x: x['nome'])
+        sairam.sort(key=lambda x: x['nome'])
+        
+        resultado = {
+            'success': True,
+            'presentes': presentes[:500],  # Limitar a 500
+            'saidos': sairam[:500],  # Limitar a 500
+            'total_presentes': len(presentes),
+            'total_saidos': len(sairam)
+        }
+        
+        # Atualizar cache
+        _relatorio_cache['data'] = resultado
+        _relatorio_cache['timestamp'] = agora
+        print('✅ Cache atualizado')
+        
+        return jsonify(resultado)
+            
+    except mysql.connector.Error as db_error:
+        print(f"❌ Erro de banco de dados ao gerar relatório online: {db_error}")
+        # Retornar cache se disponível em caso de erro
+        if _relatorio_cache['data']:
+            print('📦 Retornando cache devido a erro de banco')
+            return jsonify(_relatorio_cache['data'])
         return jsonify({
-            'error': f'Erro de conexão: {str(e)}',
+            'error': f'Erro de conexão com banco de dados: {str(db_error)}',
             'presentes': [],
             'saidos': [],
             'total_presentes': 0,
             'total_saidos': 0
         })
+    except Exception as e:
+        print(f"❌ Erro ao gerar relatório online: {e}")
+        import traceback
+        traceback.print_exc()
+        # Retornar cache se disponível em caso de erro
+        if _relatorio_cache['data']:
+            print('📦 Retornando cache devido a erro')
+            return jsonify(_relatorio_cache['data'])
+        return jsonify({
+            'error': f'Erro ao carregar dados: {str(e)}',
+            'presentes': [],
+            'saidos': [],
+            'total_presentes': 0,
+            'total_saidos': 0
+        })
+    finally:
+        # Garantir que conexão e cursor sejam SEMPRE fechados
+        if cursor:
+            try:
+                cursor.close()
+                print('✅ Cursor fechado')
+            except Exception as e:
+                print(f'⚠️ Erro ao fechar cursor: {e}')
+        if conn:
+            try:
+                conn.close()
+                print('✅ Conexão fechada')
+            except Exception as e:
+                print(f'⚠️ Erro ao fechar conexão: {e}')
 
 @app.route('/api/relatorio-graficos-data')
 def relatorio_graficos_data():
@@ -4103,6 +6622,189 @@ def gerar_dados_tendencias():
 # ========================================
 # INICIALIZAÇÃO
 # ========================================
+
+# ========================================
+# ROTAS DE ANALYTICS E RELATÓRIOS
+# ========================================
+
+@app.route('/api/analytics/estatisticas-gerais', methods=['GET'])
+@login_required
+def api_estatisticas_gerais():
+    """API para obter estatísticas gerais do sistema"""
+    try:
+        print("DEBUG: API api_estatisticas_gerais chamada")
+        stats = obter_estatisticas_gerais()
+        print(f"DEBUG: Stats retornado: {stats}")
+        print(f"DEBUG: Type of stats: {type(stats)}")
+        print(f"DEBUG: Bool of stats: {bool(stats)}")
+        if stats:
+            print("DEBUG: Stats é truthy, retornando sucesso")
+            return jsonify({'success': True, 'data': stats})
+        else:
+            print("DEBUG: Stats é falsy, retornando erro")
+            return jsonify({'success': False, 'message': 'Erro ao obter estatísticas'})
+    except Exception as e:
+        print(f"DEBUG: Exceção na API: {e}")
+        import traceback
+        print(f"DEBUG: Traceback da API: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/analytics/analise-padroes', methods=['GET'])
+@login_required
+def api_analise_padroes():
+    """API para análise de padrões de acesso"""
+    try:
+        data_inicio = request.args.get('data_inicio', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+        data_fim = request.args.get('data_fim', datetime.now().strftime('%Y-%m-%d'))
+        
+        padroes = obter_analise_padroes(data_inicio, data_fim)
+        if padroes:
+            return jsonify({'success': True, 'data': padroes})
+        else:
+            return jsonify({'success': False, 'message': 'Erro ao analisar padrões'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/analytics/relatorio-produtividade', methods=['GET'])
+@login_required
+def api_relatorio_produtividade():
+    """API para relatório de produtividade"""
+    import sys
+    try:
+        sys.stderr.write("=" * 80 + "\n")
+        sys.stderr.write("DEBUG API: api_relatorio_produtividade CHAMADA!\n")
+        sys.stderr.write("=" * 80 + "\n")
+        sys.stderr.flush()
+        
+        data_inicio = request.args.get('data_inicio', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+        data_fim = request.args.get('data_fim', datetime.now().strftime('%Y-%m-%d'))
+        departamento = request.args.get('departamento', None)
+        
+        sys.stderr.write(f"DEBUG API: Gerando relatório - {data_inicio} a {data_fim}, dept: {departamento}\n")
+        sys.stderr.write(f"DEBUG API: Chamando obter_relatorio_produtividade...\n")
+        sys.stderr.flush()
+        
+        relatorio = obter_relatorio_produtividade(data_inicio, data_fim, departamento)
+        
+        sys.stderr.write(f"DEBUG API: obter_relatorio_produtividade retornou: {type(relatorio)}, valor: {relatorio is not None}\n")
+        sys.stderr.flush()
+        
+        if relatorio is not None:
+            sys.stderr.write(f"DEBUG API: Relatório retornado com {len(relatorio) if relatorio else 0} registros\n")
+            if len(relatorio) > 0:
+                sys.stderr.write(f"DEBUG API: Primeiro registro: {relatorio[0]}\n")
+            sys.stderr.flush()
+            # Se for uma lista vazia, ainda é sucesso
+            if isinstance(relatorio, list):
+                return jsonify({'success': True, 'data': relatorio})
+            else:
+                return jsonify({'success': False, 'message': 'Formato de dados inválido'})
+        else:
+            sys.stderr.write("DEBUG API: Relatório retornou None\n")
+            sys.stderr.flush()
+            return jsonify({'success': False, 'message': 'Erro ao gerar relatório'})
+    except Exception as e:
+        sys.stderr.write(f"DEBUG API: Exceção ao gerar relatório: {e}\n")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+        return jsonify({'success': False, 'error': str(e), 'message': f'Erro ao gerar relatório: {str(e)}'})
+
+@app.route('/api/analytics/tendencias', methods=['GET'])
+@login_required
+def api_tendencias():
+    """API para tendências de acesso"""
+    try:
+        dias = int(request.args.get('dias', 30))
+        tendencias = obter_tendencias_acesso(dias)
+        if tendencias:
+            return jsonify({'success': True, 'data': tendencias})
+        else:
+            return jsonify({'success': False, 'message': 'Erro ao obter tendências'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/analytics/departamentos', methods=['GET'])
+@login_required
+def api_departamentos():
+    """API para buscar lista de departamentos"""
+    try:
+        conn = get_simple_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT DISTINCT departamento 
+            FROM funcionarios 
+            WHERE ativo = TRUE AND departamento IS NOT NULL AND departamento != ''
+            ORDER BY departamento
+        """)
+        
+        departamentos = [row[0] for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'departamentos': departamentos
+        })
+        
+    except Exception as e:
+        print(f"Erro ao buscar departamentos: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@app.route('/api/analytics/exportar-excel', methods=['POST'])
+@login_required
+def api_exportar_excel():
+    """API para exportar relatórios em Excel"""
+    try:
+        data = request.get_json()
+        tipo_relatorio = data.get('tipo', 'produtividade')
+        data_inicio = data.get('data_inicio', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+        data_fim = data.get('data_fim', datetime.now().strftime('%Y-%m-%d'))
+        departamento = data.get('departamento', None)
+        
+        if tipo_relatorio == 'produtividade':
+            relatorio = obter_relatorio_produtividade(data_inicio, data_fim, departamento)
+            if relatorio:
+                # Criar CSV (simulando Excel)
+                output = io.StringIO()
+                writer = csv.writer(output)
+                
+                # Cabeçalho
+                writer.writerow([
+                    'Número Registro', 'Nome', 'Departamento', 'Cargo',
+                    'Total Acessos', 'Entradas', 'Saídas',
+                    'Primeira Entrada', 'Última Saída',
+                    'Pontualidade Entrada (%)', 'Pontualidade Saída (%)'
+                ])
+                
+                # Dados
+                for row in relatorio:
+                    writer.writerow([
+                        row[0], row[1], row[2], row[3],  # Dados básicos
+                        row[4], row[5], row[6],          # Acessos
+                        str(row[7]), str(row[8]),        # Horários
+                        f"{row[9]*100:.1f}", f"{row[10]*100:.1f}"  # Pontualidade
+                    ])
+                
+                output.seek(0)
+                
+                return Response(
+                    output.getvalue(),
+                    mimetype='text/csv',
+                    headers={
+                        'Content-Disposition': f'attachment; filename=relatorio_produtividade_{data_inicio}_a_{data_fim}.csv'
+                    }
+                )
+        
+        return jsonify({'success': False, 'message': 'Tipo de relatório não suportado'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     print("Iniciando Sistema de Controle de Acesso de Funcionários...")

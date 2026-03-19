@@ -2,203 +2,392 @@
 
 ## ⚡ Início Rápido
 
-### 1. Acessar o Sistema
-```
-URL: https://10.17.94.107:8444
-Login: admin
-Senha: admin123
-```
+### 🐳 Com Docker (Recomendado)
 
-### 2. Páginas Principais
-- **Dashboard**: `/admin` - Visão geral do sistema
-- **Funcionários**: `/admin/funcionarios` - Gestão de funcionários
-- **Relatórios**: `/admin/relatorios` - Relatórios e exportações
-- **Configurações**: `/admin/configuracoes` - Horários e feriados
-
-## 👥 Gestão de Funcionários
-
-### Cadastrar Novo Funcionário
-1. Acesse `/admin/funcionarios`
-2. Clique em "Adicionar Funcionário"
-3. Preencha os dados:
-   - **Número de Registro**: ID único
-   - **Nome**: Nome completo
-   - **Departamento**: Departamento
-   - **Cargo**: Função
-   - **Empresa**: Empresa
-4. Clique em "Salvar"
-
-### Importar Funcionários em Massa
-1. Baixe o template: `/admin/funcionarios` → "Download Template"
-2. Preencha o arquivo CSV
-3. Faça upload: "Importar Funcionários" → selecione arquivo
-4. Confirme a importação
-
-## 📊 Relatórios
-
-### Relatório Online (Tempo Real)
-- **URL**: `/relatorio-online-sistema-real`
-- **Funcionalidades**:
-  - ✅ Atualização automática a cada 30 segundos
-  - ✅ Funcionários presentes e que saíram
-  - ✅ Ordenação por colunas (clique nos cabeçalhos)
-  - ✅ Layout responsivo
-
-### Relatório Diário
-1. Acesse `/admin/relatorios`
-2. Selecione período (data início/fim)
-3. Escolha formato: PDF, CSV ou JSON
-4. Clique em "Gerar Relatório"
-
-### Relatório por Funcionário
-1. Acesse `/admin/relatorios`
-2. Selecione funcionário no dropdown
-3. Escolha período
-4. Escolha formato
-5. Clique em "Gerar Relatório"
-
-## 🔐 Acessos de Funcionários
-
-### Acesso Manual
-- **URL**: `/acesso-manual`
-- **Como usar**:
-  1. Digite o número de registro
-  2. Escolha tipo de acesso (Automático/Entrada/Saída)
-  3. Clique em "Registrar Acesso"
-
-### Acesso Facial
-- **URL**: `/acesso-facial`
-- **Como usar**:
-  1. Posicione o rosto na câmera
-  2. Aguarde o reconhecimento
-  3. Acesso registrado automaticamente
-
-### Acesso RFID
-- **URL**: `/acesso-rfid`
-- **Como usar**:
-  1. Aproxime o cartão RFID
-  2. Acesso registrado automaticamente
-
-## ⚙️ Configurações
-
-### Horários de Trabalho
-1. Acesse `/admin/configuracoes`
-2. Seção "Horários de Trabalho"
-3. Configure:
-   - **Horário de Entrada**: Ex: 08:00
-   - **Horário de Saída**: Ex: 17:00
-   - **Tolerância**: Ex: 15 minutos
-   - **Dias da Semana**: Selecione os dias
-
-### Feriados
-1. Acesse `/admin/configuracoes`
-2. Seção "Feriados"
-3. Adicione:
-   - **Data**: Data do feriado
-   - **Descrição**: Nome do feriado
-4. Clique em "Adicionar Feriado"
-
-## 📱 Interface do Sistema
-
-### Cores e Status
-- 🟢 **Verde**: Funcionários presentes
-- 🟡 **Amarelo**: Funcionários que saíram
-- 🔴 **Vermelho**: Alertas/erros
-- 🔵 **Azul**: Informações neutras
-
-### Ícones Importantes
-- 👥 **Funcionários**: Gestão de usuários
-- 📊 **Relatórios**: Relatórios e exportações
-- ⚙️ **Configurações**: Horários e feriados
-- 🔐 **Acesso**: Páginas de entrada
-- 📈 **Dashboard**: Visão geral
-
-## 🔧 Comandos Úteis
-
-### Verificar Status do Sistema
 ```bash
-docker-compose ps
+# 1. Baixar o projeto
+git clone <url-do-repositorio>
+cd sistema-funcionarios
+
+# 2. Iniciar o sistema
+docker-compose up -d
+
+# 3. Acessar o sistema
+# Abrir no navegador: http://localhost:8081
 ```
 
-### Ver Logs
+### 🐍 Sem Docker
+
 ```bash
-# Logs do Flask
-docker-compose logs flask_acesso
+# 1. Criar ambiente virtual
+python3 -m venv venv
+source venv/bin/activate
 
-# Logs do MySQL
-docker-compose logs acesso_mysql
+# 2. Instalar dependências
+pip install -r requirements.txt
 
-# Logs do Caddy
-docker-compose logs caddy_acesso
+# 3. Configurar banco MySQL
+# 4. Executar aplicação
+python sistema_acesso_funcionarios.py
 ```
-
-### Reiniciar Sistema
-```bash
-docker-compose restart
-```
-
-### Backup do Banco
-```bash
-docker exec acesso_mysql mysqldump -u root -proot_password acesso_funcionarios_db > backup_$(date +%Y%m%d).sql
-```
-
-## 🚨 Problemas Comuns
-
-### Sistema não carrega
-1. Verifique se os containers estão rodando: `docker-compose ps`
-2. Verifique os logs: `docker-compose logs`
-3. Reinicie o sistema: `docker-compose restart`
-
-### Erro de login
-1. Verifique se está usando: admin / admin123
-2. Limpe o cache do navegador
-3. Tente em modo incógnito
-
-### Relatório não gera
-1. Verifique se selecionou o período
-2. Verifique se há dados no período
-3. Tente outro formato (PDF, CSV, JSON)
-
-### Acesso facial não funciona
-1. Verifique se a câmera está conectada
-2. Verifique se o funcionário tem cadastro facial
-3. Verifique a iluminação do ambiente
-
-## 📞 Suporte
-
-### Informações do Sistema
-- **Versão**: 1.0.0
-- **Última Atualização**: Agosto 2025
-- **Status**: 100% Operacional
-
-### URLs Importantes
-- **Sistema Principal**: https://10.17.94.107:8444
-- **Relatório Online**: https://10.17.94.107:8444/relatorio-online-sistema-real
-- **Acesso Manual**: https://10.17.94.107:8444/acesso-manual
-- **Acesso Facial**: https://10.17.94.107:8444/acesso-facial
 
 ---
 
-## ✅ Checklist de Verificação
+## 🎯 Funcionalidades Principais
 
-### Sistema Funcionando
-- [ ] Containers rodando: `docker-compose ps`
-- [ ] Login administrativo funcionando
-- [ ] Relatório online acessível
-- [ ] Acesso manual funcionando
-- [ ] Acesso facial funcionando (se configurado)
+### 👤 **Acesso de Funcionários**
 
-### Funcionalidades Principais
-- [ ] Cadastro de funcionários
-- [ ] Importação em massa
-- [ ] Relatórios gerando
-- [ ] Configurações salvando
-- [ ] Logs sendo gerados
+#### **Reconhecimento Facial** 📸
+- Acesse: `/acesso-facial`
+- Posicione sua face na câmera
+- Sistema reconhece automaticamente
+- Confirma acesso com som e mensagem
 
-### Segurança
-- [ ] HTTPS funcionando
-- [ ] Login obrigatório
-- [ ] Logs de acesso
-- [ ] Rate limiting ativo
+#### **Acesso RFID** 🆔
+- Acesse: `/acesso-rfid`
+- Aproxime cartão/tag do leitor
+- Validação automática
+- Feedback visual e sonoro
 
-**Status**: ✅ Sistema 100% Operacional 
+#### **Acesso Manual** ⌨️
+- Acesse: `/acesso-manual`
+- Digite seu número de registro
+- Escolha tipo de acesso
+- Confirmação imediata
+
+### 👨‍💼 **Painel Administrativo**
+
+#### **Dashboard** 📊
+- Visão geral em tempo real
+- Funcionários presentes
+- Acessos do dia
+- Gráficos interativos
+
+#### **Gestão de Funcionários** 👥
+- Cadastrar novos funcionários
+- Editar informações
+- Ativar/desativar
+- Configurar horários
+
+#### **Relatórios** 📋
+- Relatórios diários
+- Histórico por funcionário
+- Exportação CSV/PDF
+- Filtros por período
+
+---
+
+## 🔧 Configurações Importantes
+
+### ⏰ **Horários de Trabalho**
+
+```python
+# Configuração padrão
+HORARIOS_PADRAO = {
+    'entrada': '08:00',
+    'saida': '18:00',
+    'almoco_inicio': '12:00',
+    'almoco_fim': '13:00',
+    'tolerancia_entrada': 15,  # minutos
+    'tolerancia_saida': 15      # minutos
+}
+```
+
+### 🔐 **Segurança**
+
+```python
+# Configurações de sessão
+app.config.update(
+    SESSION_COOKIE_SECURE=True,      # HTTPS obrigatório
+    SESSION_COOKIE_HTTPONLY=True,    # Sem acesso JavaScript
+    SESSION_COOKIE_SAMESITE='Strict', # Proteção CSRF
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=2)  # Expiração
+)
+```
+
+### 📷 **Reconhecimento Facial**
+
+```python
+# Configurações de performance
+OPTIMIZATION_CONFIG = {
+    'max_image_size': (640, 480),    # Tamanho máximo
+    'use_cache': True,               # Cache de encodings
+    'cache_ttl': 300,                # 5 minutos
+    'min_confidence': 0.65,          # Confiança mínima
+    'max_processing_time': 3         # 3 segundos máximo
+}
+```
+
+---
+
+## 📱 Interfaces do Sistema
+
+### 🏠 **Página Principal** (`/`)
+- Menu de acesso rápido
+- Status do sistema
+- Links para todas as funcionalidades
+
+### 📸 **Acesso Facial** (`/acesso-facial`)
+- Câmera em tempo real
+- Detecção automática de face
+- Feedback visual e sonoro
+- Processamento otimizado
+
+### 🆔 **Acesso RFID** (`/acesso-rfid`)
+- Interface para leitor
+- Validação de cartões
+- Histórico de acessos
+- Configurações de leitor
+
+### ⌨️ **Acesso Manual** (`/acesso-manual`)
+- Campo de número de registro
+- Seleção de tipo de acesso
+- Validação em tempo real
+- Mensagens de confirmação
+
+### 👨‍💼 **Admin** (`/admin`)
+- Login administrativo
+- Dashboard completo
+- Gestão de funcionários
+- Configurações do sistema
+
+---
+
+## 🔌 APIs Principais
+
+### 📡 **Endpoints de Acesso**
+
+```http
+# Registrar acesso manual
+POST /registrar_acesso_funcionario
+{
+    "numero_registro": "12345",
+    "tipo_acesso": "entrada",
+    "metodo_acesso": "manual"
+}
+
+# Registrar acesso facial
+POST /registrar_acesso_facial
+{
+    "imagem": "base64_encoded_image"
+}
+
+# Detectar face na imagem
+POST /api/detectar_face
+{
+    "imagem": "base64_encoded_image"
+}
+```
+
+### 📊 **Endpoints de Dados**
+
+```http
+# Dados do dashboard
+GET /api/dashboard-data
+
+# Relatório diário
+GET /api/relatorios/diario?data_inicio=2024-12-01&data_fim=2024-12-01
+
+# Lista de funcionários
+GET /api/funcionarios
+
+# Status do sistema
+GET /api/status-sistema
+```
+
+---
+
+## 🗄️ Banco de Dados
+
+### 🏗️ **Tabelas Principais**
+
+#### **funcionarios**
+- Dados pessoais e profissionais
+- Status e horários
+- Configurações individuais
+
+#### **acessos_funcionarios**
+- Histórico de todos os acessos
+- Método de autenticação
+- Timestamps e IPs
+
+#### **funcionarios_facial**
+- Encodings faciais
+- Imagens de referência
+- Configurações de confiança
+
+#### **cartoes_rfid**
+- Códigos dos cartões
+- Associação com funcionários
+- Status de ativação
+
+### 🔍 **Consultas Úteis**
+
+```sql
+-- Funcionários presentes agora
+SELECT f.nome, f.departamento, MAX(a.hora_acesso) as ultima_entrada
+FROM funcionarios f
+JOIN acessos_funcionarios a ON f.numero_registro = a.numero_registro
+WHERE DATE(a.data_acesso) = CURDATE()
+AND a.tipo_acesso = 'entrada'
+GROUP BY f.numero_registro
+HAVING NOT EXISTS (
+    SELECT 1 FROM acessos_funcionarios a2
+    WHERE a2.numero_registro = f.numero_registro
+    AND DATE(a2.data_acesso) = CURDATE()
+    AND a2.tipo_acesso = 'saida'
+    AND a2.hora_acesso > MAX(a.hora_acesso)
+);
+
+-- Acessos por hora hoje
+SELECT HOUR(hora_acesso) as hora, COUNT(*) as total
+FROM acessos_funcionarios
+WHERE DATE(data_acesso) = CURDATE()
+GROUP BY HOUR(hora_acesso)
+ORDER BY hora;
+```
+
+---
+
+## 🛠️ Manutenção
+
+### 📅 **Tarefas Diárias**
+
+```bash
+# Verificar status dos serviços
+docker-compose ps
+
+# Ver logs em tempo real
+docker-compose logs -f flask_acesso
+
+# Verificar uso de recursos
+docker stats
+```
+
+### 📅 **Tarefas Semanais**
+
+```bash
+# Backup do banco
+docker exec acesso_mysql mysqldump -u root -proot_password \
+  acesso_funcionarios_db > backup_$(date +%Y%m%d).sql
+
+# Limpar logs antigos
+find ./logs -name "*.log" -mtime +7 -delete
+
+# Verificar atualizações
+docker-compose pull
+```
+
+### 📅 **Tarefas Mensais**
+
+```bash
+# Backup completo
+tar -czf backup_completo_$(date +%Y%m).tar.gz \
+  --exclude=venv --exclude=logs/*.log .
+
+# Análise de performance
+# Verificar consultas lentas no MySQL
+# Revisar logs de erro
+```
+
+---
+
+## 🚨 Troubleshooting
+
+### ❌ **Problemas Comuns**
+
+#### **Sistema não inicia**
+```bash
+# Verificar logs
+docker-compose logs flask_acesso
+
+# Verificar portas
+sudo netstat -tulpn | grep :8081
+
+# Reiniciar
+docker-compose down && docker-compose up -d
+```
+
+#### **Erro de banco de dados**
+```bash
+# Verificar MySQL
+docker-compose ps acesso_mysql
+
+# Testar conexão
+docker exec -it acesso_mysql mysql -u app_user -papp_password
+
+# Ver logs
+docker-compose logs acesso_mysql
+```
+
+#### **Reconhecimento facial não funciona**
+```bash
+# Verificar câmera
+ls -la /dev/video*
+
+# Verificar dependências
+pip list | grep face-recognition
+
+# Testar câmera
+python -c "import cv2; cap = cv2.VideoCapture(0); print('OK' if cap.isOpened() else 'ERRO')"
+```
+
+### 🔧 **Comandos de Diagnóstico**
+
+```bash
+# Status geral
+curl http://localhost:8081/api/status-sistema
+
+# Verificar saúde dos serviços
+docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+
+# Ver uso de recursos
+docker stats --no-stream
+
+# Ver logs de erro
+docker-compose logs --tail=100 flask_acesso | grep ERROR
+```
+
+---
+
+## 📚 Recursos Adicionais
+
+### 🔗 **Links Úteis**
+
+- **Documentação Flask**: https://flask.palletsprojects.com/
+- **MySQL Documentation**: https://dev.mysql.com/doc/
+- **Docker Documentation**: https://docs.docker.com/
+- **OpenCV Documentation**: https://docs.opencv.org/
+
+### 📖 **Arquivos Importantes**
+
+- `sistema_acesso_funcionarios.py` - Aplicação principal
+- `docker-compose.yml` - Configuração Docker
+- `requirements.txt` - Dependências Python
+- `Caddyfile` - Configuração proxy reverso
+- `init.sql` - Inicialização do banco
+
+### 🆘 **Suporte**
+
+- **Logs**: Sempre verifique os logs primeiro
+- **Documentação**: Esta documentação e comentários no código
+- **Issues**: Reporte problemas no repositório
+- **Comunidade**: Stack Overflow e fóruns Python
+
+---
+
+## 🎉 Próximos Passos
+
+1. **Teste o sistema** com alguns funcionários
+2. **Configure horários** específicos da sua empresa
+3. **Cadastre funcionários** e configure acessos
+4. **Teste todos os métodos** de autenticação
+5. **Configure relatórios** conforme suas necessidades
+6. **Treine usuários** e administradores
+7. **Monitore performance** e ajuste configurações
+
+---
+
+**🎯 Dica**: Comece com o básico e vá adicionando funcionalidades conforme necessário. O sistema é flexível e pode ser adaptado para diferentes cenários empresariais.
+
+**📞 Suporte**: Para dúvidas técnicas, consulte os logs e esta documentação. Em caso de problemas específicos, verifique a seção de troubleshooting. 

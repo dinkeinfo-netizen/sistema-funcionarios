@@ -186,11 +186,15 @@ Thumbs.db
 *.tmp
 *.temp
 *~
+*.py.ori
+config_ip.txt
+cookies.txt
 
 # Backup files
 *.bak
 *.backup
 *_backup
+backups/
 
 # SSL certificates (sensitive)
 # certs/

@@ -1,0 +1,16 @@
+FROM nginx:alpine
+
+# Copiar a landing page
+COPY landing-page.html /usr/share/nginx/html/index.html
+
+# Expor porta 80
+EXPOSE 80
+
+# Comando para iniciar nginx
+CMD ["nginx", "-g", "daemon off;"]
+
+
+
+
+
+

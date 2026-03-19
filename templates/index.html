@@ -12,6 +12,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    
     <style>
         /* Variáveis CSS para tema claro */
         :root {
@@ -67,6 +68,11 @@
             padding: 20px;
             color: var(--text-primary);
             transition: all 0.3s ease;
+        }
+        
+        /* Remover navbar se existir */
+        #global-navbar {
+            display: none !important;
         }
         
         .main-container {
@@ -299,53 +305,24 @@
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <!-- Header -->
-        <div class="header-section">
-            <div class="d-flex justify-content-between align-items-start">
+    <div class="container-fluid" style="padding-top: 20px;">
+        <div class="main-container" style="margin: 0 auto;">
+            <!-- Header -->
+            <div class="header-section">
                 <div>
                     <h1><i class="fas fa-id-card me-3"></i>Controle de Acesso</h1>
                     <p>Sistema de Registro de Entrada e Saída de Funcionários</p>
                 </div>
-                <button id="theme-toggle" class="btn btn-outline-light btn-sm" title="Alternar Tema">
-                    <i class="fas fa-sun" id="theme-icon"></i>
-                </button>
             </div>
-        </div>
         
         <!-- Content -->
-        <div class="content-section">
-            <!-- Acesso Facial -->
-            <div class="access-card">
-                <i class="fas fa-camera"></i>
-                <h3>Acesso Facial</h3>
-                <p>Reconhecimento facial automático para registro rápido e seguro de entrada e saída.</p>
-                <a href="/acesso-facial" class="btn-access btn-facial">
-                    <i class="fas fa-eye me-2"></i>Acessar com Face
-                </a>
+        <div class="content-section" id="metodosAcesso">
+            <!-- Os métodos serão carregados dinamicamente via JavaScript -->
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando métodos de acesso...</span>
+                </div>
             </div>
-            
-            <!-- Acesso Manual -->
-            <div class="access-card">
-                <i class="fas fa-keyboard"></i>
-                <h3>Acesso Manual</h3>
-                <p>Digite seu número de registro para registrar entrada, saída ou intervalos.</p>
-                <a href="/acesso-manual" class="btn-access btn-manual">
-                    <i class="fas fa-edit me-2"></i>Digitar Registro
-                </a>
-            </div>
-            
-            <!-- Acesso RFID -->
-            <div class="access-card">
-                <i class="fas fa-credit-card"></i>
-                <h3>Acesso RFID</h3>
-                <p>Utilize seu cartão ou tag RFID para acesso rápido e sem contato.</p>
-                <a href="/acesso-rfid" class="btn-access">
-                    <i class="fas fa-wifi me-2"></i>Usar RFID
-                </a>
-            </div>
-            
-
         </div>
         
         <!-- Status Bar -->
@@ -371,7 +348,7 @@
                     <div class="col-md-6">
                         <span class="text-muted">
                             <i class="fas fa-copyright me-1"></i>
-                            2024 Sistema de Controle de Acesso
+                            2025 Sistema de Controle de Acesso
                         </span>
                     </div>
                     <div class="col-md-6 text-end">
@@ -433,45 +410,183 @@
             });
         });
         
-        // Sistema de tema escuro
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
+        // Sistema de tema escuro (já gerenciado pelo navbar)
         const html = document.documentElement;
-        
-        // Carregar tema salvo
         const savedTheme = localStorage.getItem('theme') || 'light';
         html.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
         
-        // Função para alternar tema
-        function toggleTheme() {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-            
-            // Adicionar animação de transição
-            document.body.style.transition = 'all 0.3s ease';
-            setTimeout(() => {
-                document.body.style.transition = '';
-            }, 300);
+        // ========================================
+        // CARREGAR MÉTODOS DE ACESSO HABILITADOS
+        // ========================================
+        
+        function carregarMetodosAcesso() {
+            fetch('/api/configuracoes/metodos-acesso')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('metodosAcesso');
+                    container.innerHTML = '';
+                    
+                    if (data.success && data.metodos) {
+                        const metodos = data.metodos;
+                        
+                        // Acesso Facial
+                        if (metodos.facial !== false) {
+                            container.innerHTML += `
+                                <div class="access-card">
+                                    <i class="fas fa-camera"></i>
+                                    <h3>Acesso Facial</h3>
+                                    <p>Reconhecimento facial automático para registro rápido e seguro de entrada e saída.</p>
+                                    <a href="/acesso-facial" class="btn-access btn-facial">
+                                        <i class="fas fa-eye me-2"></i>Acessar com Face
+                                    </a>
+                                </div>
+                            `;
+                        }
+                        
+                        // Acesso Manual
+                        if (metodos.manual !== false) {
+                            container.innerHTML += `
+                                <div class="access-card">
+                                    <i class="fas fa-keyboard"></i>
+                                    <h3>Acesso Manual</h3>
+                                    <p>Digite seu número de registro para registrar entrada, saída ou intervalos.</p>
+                                    <a href="/acesso-manual" class="btn-access btn-manual">
+                                        <i class="fas fa-edit me-2"></i>Digitar Registro
+                                    </a>
+                                </div>
+                            `;
+                        }
+                        
+                        // Acesso RFID
+                        if (metodos.rfid !== false) {
+                            container.innerHTML += `
+                                <div class="access-card">
+                                    <i class="fas fa-credit-card"></i>
+                                    <h3>Acesso RFID</h3>
+                                    <p>Utilize seu cartão ou tag RFID para acesso rápido e sem contato.</p>
+                                    <a href="/acesso-rfid" class="btn-access">
+                                        <i class="fas fa-wifi me-2"></i>Usar RFID
+                                    </a>
+                                </div>
+                            `;
+                        }
+                        
+                        // Acesso QR Code
+                        if (metodos.qrcode !== false) {
+                            container.innerHTML += `
+                                <div class="access-card">
+                                    <i class="fas fa-qrcode"></i>
+                                    <h3>Acesso QR Code</h3>
+                                    <p>Leia seu QR Code único através da câmera para registro de acesso.</p>
+                                    <a href="/acesso-qrcode" class="btn-access">
+                                        <i class="fas fa-qrcode me-2"></i>Usar QR Code
+                                    </a>
+                                </div>
+                            `;
+                        }
+                        
+                        // Se nenhum método estiver habilitado
+                        if (container.innerHTML === '') {
+                            container.innerHTML = `
+                                <div class="access-card" style="grid-column: 1 / -1;">
+                                    <i class="fas fa-exclamation-triangle" style="color: var(--warning-color);"></i>
+                                    <h3>Nenhum Método de Acesso Habilitado</h3>
+                                    <p>Entre em contato com o administrador do sistema para habilitar métodos de acesso.</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Aplicar efeitos de hover nos novos cards
+                        container.querySelectorAll('.access-card').forEach(card => {
+                            card.addEventListener('mouseenter', function() {
+                                this.style.transform = 'translateY(-5px) scale(1.02)';
+                            });
+                            
+                            card.addEventListener('mouseleave', function() {
+                                this.style.transform = 'translateY(0) scale(1)';
+                            });
+                        });
+                    } else {
+                        // Fallback: mostrar todos os métodos se houver erro
+                        container.innerHTML = `
+                            <div class="access-card">
+                                <i class="fas fa-camera"></i>
+                                <h3>Acesso Facial</h3>
+                                <p>Reconhecimento facial automático para registro rápido e seguro de entrada e saída.</p>
+                                <a href="/acesso-facial" class="btn-access btn-facial">
+                                    <i class="fas fa-eye me-2"></i>Acessar com Face
+                                </a>
+                            </div>
+                            <div class="access-card">
+                                <i class="fas fa-keyboard"></i>
+                                <h3>Acesso Manual</h3>
+                                <p>Digite seu número de registro para registrar entrada, saída ou intervalos.</p>
+                                <a href="/acesso-manual" class="btn-access btn-manual">
+                                    <i class="fas fa-edit me-2"></i>Digitar Registro
+                                </a>
+                            </div>
+                            <div class="access-card">
+                                <i class="fas fa-credit-card"></i>
+                                <h3>Acesso RFID</h3>
+                                <p>Utilize seu cartão ou tag RFID para acesso rápido e sem contato.</p>
+                                <a href="/acesso-rfid" class="btn-access">
+                                    <i class="fas fa-wifi me-2"></i>Usar RFID
+                                </a>
+                            </div>
+                            <div class="access-card">
+                                <i class="fas fa-qrcode"></i>
+                                <h3>Acesso QR Code</h3>
+                                <p>Leia seu QR Code único através da câmera para registro de acesso.</p>
+                                <a href="/acesso-qrcode" class="btn-access">
+                                    <i class="fas fa-qrcode me-2"></i>Usar QR Code
+                                </a>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar métodos de acesso:', error);
+                    // Em caso de erro, mostrar todos os métodos
+                    const container = document.getElementById('metodosAcesso');
+                    container.innerHTML = `
+                        <div class="access-card">
+                            <i class="fas fa-camera"></i>
+                            <h3>Acesso Facial</h3>
+                            <p>Reconhecimento facial automático para registro rápido e seguro de entrada e saída.</p>
+                            <a href="/acesso-facial" class="btn-access btn-facial">
+                                <i class="fas fa-eye me-2"></i>Acessar com Face
+                            </a>
+                        </div>
+                        <div class="access-card">
+                            <i class="fas fa-keyboard"></i>
+                            <h3>Acesso Manual</h3>
+                            <p>Digite seu número de registro para registrar entrada, saída ou intervalos.</p>
+                            <a href="/acesso-manual" class="btn-access btn-manual">
+                                <i class="fas fa-edit me-2"></i>Digitar Registro
+                            </a>
+                        </div>
+                        <div class="access-card">
+                            <i class="fas fa-credit-card"></i>
+                            <h3>Acesso RFID</h3>
+                            <p>Utilize seu cartão ou tag RFID para acesso rápido e sem contato.</p>
+                            <a href="/acesso-rfid" class="btn-access">
+                                <i class="fas fa-wifi me-2"></i>Usar RFID
+                            </a>
+                        </div>
+                        <div class="access-card">
+                            <i class="fas fa-qrcode"></i>
+                            <h3>Acesso QR Code</h3>
+                            <p>Leia seu QR Code único através da câmera para registro de acesso.</p>
+                            <a href="/acesso-qrcode" class="btn-access">
+                                <i class="fas fa-qrcode me-2"></i>Usar QR Code
+                            </a>
+                        </div>
+                    `;
+                });
         }
         
-        // Função para atualizar ícone
-        function updateThemeIcon(theme) {
-            if (theme === 'dark') {
-                themeIcon.className = 'fas fa-moon';
-                themeToggle.title = 'Alternar para Tema Claro';
-            } else {
-                themeIcon.className = 'fas fa-sun';
-                themeToggle.title = 'Alternar para Tema Escuro';
-            }
-        }
-        
-        // Event listener para o botão de tema
-        themeToggle.addEventListener('click', toggleTheme);
+        // Carregar métodos ao iniciar
+        carregarMetodosAcesso();
     </script>
 </body>
 </html> 

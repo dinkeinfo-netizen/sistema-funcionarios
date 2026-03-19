@@ -212,6 +212,9 @@
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Funcionalidade Implementada!</strong> As configurações do sistema agora estão disponíveis.
+                <button class="btn btn-sm btn-light ms-3" onclick="mostrarAjuda()">
+                    <i class="fas fa-question-circle me-1"></i>Como Usar
+                </button>
             </div>
             
             <!-- Configurações -->
@@ -243,6 +246,66 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- Métodos de Acesso -->
+                <div class="col-md-12 mb-4">
+                    <div class="config-card">
+                        <h3>
+                            <i class="fas fa-toggle-on text-warning"></i>
+                            Métodos de Acesso
+                        </h3>
+                        <p>Habilitar ou desabilitar métodos de acesso disponíveis no sistema.</p>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="form-check form-switch" style="font-size: 1.1rem;">
+                                    <input class="form-check-input" type="checkbox" id="metodoFacial" style="width: 3rem; height: 1.5rem;">
+                                    <label class="form-check-label ms-3" for="metodoFacial">
+                                        <i class="fas fa-camera text-info me-2"></i>
+                                        <strong>Acesso Facial</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="form-check form-switch" style="font-size: 1.1rem;">
+                                    <input class="form-check-input" type="checkbox" id="metodoManual" style="width: 3rem; height: 1.5rem;">
+                                    <label class="form-check-label ms-3" for="metodoManual">
+                                        <i class="fas fa-keyboard text-warning me-2"></i>
+                                        <strong>Acesso Manual</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="form-check form-switch" style="font-size: 1.1rem;">
+                                    <input class="form-check-input" type="checkbox" id="metodoRFID" style="width: 3rem; height: 1.5rem;">
+                                    <label class="form-check-label ms-3" for="metodoRFID">
+                                        <i class="fas fa-credit-card text-success me-2"></i>
+                                        <strong>Acesso RFID</strong>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="form-check form-switch" style="font-size: 1.1rem;">
+                                    <input class="form-check-input" type="checkbox" id="metodoQRCode" style="width: 3rem; height: 1.5rem;">
+                                    <label class="form-check-label ms-3" for="metodoQRCode">
+                                        <i class="fas fa-qrcode text-primary me-2"></i>
+                                        <strong>Acesso QR Code</strong>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-config btn-primary" onclick="salvarMetodosAcesso()">
+                                <i class="fas fa-save me-2"></i>Salvar Configurações
+                            </button>
+                            <div id="metodosAcessoStatus" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -258,14 +321,31 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="mb-3">Adicionar Novo Horário</h6>
-                            <form id="formHorarios">
-                                <div class="mb-3">
-                                    <label class="form-label">Nome da Configuração</label>
-                                    <input type="text" class="form-control" id="nomeConfig" required>
-                                </div>
+                    <!-- Abas -->
+                    <ul class="nav nav-tabs mb-4" id="horariosTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-cadastro" data-bs-toggle="tab" data-bs-target="#cadastro-horarios" type="button" role="tab">
+                                <i class="fas fa-plus-circle me-2"></i>Cadastrar Horários
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-atribuir" data-bs-toggle="tab" data-bs-target="#atribuir-departamentos" type="button" role="tab">
+                                <i class="fas fa-building me-2"></i>Atribuir aos Departamentos
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="horariosTabContent">
+                        <!-- Aba: Cadastrar Horários -->
+                        <div class="tab-pane fade show active" id="cadastro-horarios" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Adicionar Novo Horário</h6>
+                                    <form id="formHorarios">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nome da Configuração</label>
+                                            <input type="text" class="form-control" id="nomeConfig" required placeholder="Ex: Horário Comercial, Horário Produção">
+                                        </div>
                                 <div class="row">
                                     <div class="col-md-6">
                                         <label class="form-label">Hora de Entrada</label>
@@ -317,14 +397,38 @@
                                         <label class="form-check-label" for="domingo">Domingo</label>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary mt-3">
-                                    <i class="fas fa-save me-2"></i>Salvar
-                                </button>
-                            </form>
+                                        <button type="submit" class="btn btn-primary mt-3">
+                                            <i class="fas fa-save me-2"></i>Salvar Horário
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">Horários Cadastrados</h6>
+                                    <div id="listaHorarios" style="max-height: 500px; overflow-y: auto;"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="mb-3">Horários Configurados</h6>
-                            <div id="listaHorarios"></div>
+                        
+                        <!-- Aba: Atribuir aos Departamentos -->
+                        <div class="tab-pane fade" id="atribuir-departamentos" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Como funciona:</strong> Selecione um departamento e escolha qual horário aplicar a ele. 
+                                Se não atribuir um horário específico, o departamento usará o "Horário Padrão".
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h6 class="mb-3">Atribuir Horários aos Departamentos</h6>
+                                    <div id="listaAtribuicoes" style="max-height: 500px; overflow-y: auto;">
+                                        <div class="text-center py-4">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Carregando...</span>
+                                            </div>
+                                            <p class="mt-2">Carregando departamentos...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -383,15 +487,101 @@
         </div>
     </div>
     
+    <!-- Modal Ajuda -->
+    <div class="modal fade" id="modalAjuda" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%); color: white;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle me-2"></i>Guia de Uso - Configurações
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h5><i class="fas fa-clock text-primary me-2"></i>Horários por Departamento</h5>
+                    <p><strong>Como funciona o sistema de horários:</strong></p>
+                    <ol>
+                        <li><strong>Cadastrar Horários:</strong>
+                            <ul>
+                                <li>Na aba "Cadastrar Horários", crie os horários que deseja usar (ex: "Horário Comercial", "Horário Produção")</li>
+                                <li>Configure entrada, saída, tolerâncias e dias da semana</li>
+                                <li>Os horários são cadastrados sem departamento específico</li>
+                            </ul>
+                        </li>
+                        <li><strong>Atribuir aos Departamentos:</strong>
+                            <ul>
+                                <li>Vá para a aba "Atribuir aos Departamentos"</li>
+                                <li>Para cada departamento, selecione qual horário aplicar</li>
+                                <li>Se não atribuir um horário, o departamento usará o "Horário Padrão"</li>
+                                <li>Clique em "Salvar" ao lado de cada departamento</li>
+                            </ul>
+                        </li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Vantagem:</strong> Você pode criar horários uma vez e reutilizá-los em vários departamentos, 
+                        facilitando o gerenciamento e evitando duplicação.
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5><i class="fas fa-calendar-alt text-success me-2"></i>Feriados</h5>
+                    <p><strong>Como cadastrar e usar feriados:</strong></p>
+                    <ol>
+                        <li>Clique em <strong>"Configurar"</strong> no card de Feriados</li>
+                        <li>Preencha o <strong>Nome do Feriado</strong> (ex: "Natal", "Ano Novo")</li>
+                        <li>Selecione a <strong>Data</strong> do feriado</li>
+                        <li>Escolha o <strong>Tipo</strong>:
+                            <ul>
+                                <li><strong>Feriado Nacional:</strong> Feriados nacionais (ex: 7 de Setembro)</li>
+                                <li><strong>Feriado Estadual:</strong> Feriados do estado</li>
+                                <li><strong>Feriado Municipal:</strong> Feriados da cidade</li>
+                                <li><strong>Ponto Facultativo:</strong> Dia em que o trabalho é opcional</li>
+                            </ul>
+                        </li>
+                        <li>Adicione uma <strong>Descrição</strong> (opcional)</li>
+                        <li>Clique em <strong>"Salvar"</strong></li>
+                    </ol>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Como funciona:</strong> Quando um funcionário tentar acessar em um dia cadastrado como feriado, 
+                        o sistema reconhecerá automaticamente e não marcará como atraso ou falta.
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5><i class="fas fa-lightbulb text-warning me-2"></i>Dicas</h5>
+                    <ul>
+                        <li>Você pode criar múltiplos horários para o mesmo departamento (ex: horário de manhã e horário de tarde)</li>
+                        <li>Feriados cadastrados são aplicados automaticamente a todos os funcionários</li>
+                        <li>Para excluir um horário ou feriado, clique no ícone de lixeira ao lado do item</li>
+                        <li>Horários específicos por departamento têm prioridade sobre horários gerais</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Função para mostrar ajuda
+        function mostrarAjuda() {
+            const modal = new bootstrap.Modal(document.getElementById('modalAjuda'));
+            modal.show();
+        }
         // Funções para horários
         function abrirModalHorarios() {
             const modal = new bootstrap.Modal(document.getElementById('modalHorarios'));
             modal.show();
+            
+            // Carregar horários e atribuições
             carregarHorarios();
+            carregarAtribuicoesDepartamentos();
         }
         
         function carregarHorarios() {
@@ -402,11 +592,56 @@
                         const lista = document.getElementById('listaHorarios');
                         lista.innerHTML = '';
                         
+                        // Remover duplicatas e filtrar horários
+                        // Na aba de cadastro, mostrar apenas horários sem departamento (horários base)
+                        // Horários atribuídos a departamentos aparecem na aba de atribuição
+                        const horariosUnicos = [];
+                        const horariosVistos = new Set();
+                        let horarioPadraoVisto = false;
+                        
                         data.horarios.forEach(horario => {
-                            const dias = horario.dias_semana.split(',').map(d => {
+                            // Na lista de cadastro, mostrar apenas horários base (sem departamento)
+                            // Exceto se for um horário específico de departamento que foi criado diretamente
+                            if (horario.departamento) {
+                                // Pular horários que têm departamento - eles aparecem na aba de atribuição
+                                return;
+                            }
+                            
+                            // Para "Horário Padrão" sem departamento, mostrar apenas uma vez
+                            if (horario.nome_config === 'Horário Padrão') {
+                                if (!horarioPadraoVisto) {
+                                    horariosUnicos.push(horario);
+                                    horarioPadraoVisto = true;
+                                }
+                            } else {
+                                // Para outros horários, usar uma chave única baseada em nome, horário e dias
+                                const chave = `${horario.nome_config}_${horario.hora_entrada}_${horario.hora_saida}_${horario.dias_semana}`;
+                                if (!horariosVistos.has(chave)) {
+                                    horariosUnicos.push(horario);
+                                    horariosVistos.add(chave);
+                                }
+                            }
+                        });
+                        
+                        horariosUnicos.forEach(horario => {
+                            const dias = horario.dias_semana ? horario.dias_semana.split(',').map(d => {
                                 const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                                return nomes[d];
-                            }).join(', ');
+                                return nomes[d] || d;
+                            }).join(', ') : 'Todos';
+                            
+                            const deptInfo = horario.departamento ? 
+                                `<p class="card-text mb-1">
+                                    <small class="text-muted">
+                                        <i class="fas fa-building me-1"></i>
+                                        Departamento: ${horario.departamento}
+                                    </small>
+                                </p>` : 
+                                `<p class="card-text mb-1">
+                                    <small class="text-muted">
+                                        <i class="fas fa-globe me-1"></i>
+                                        Todos os Departamentos
+                                    </small>
+                                </p>`;
                             
                             lista.innerHTML += `
                                 <div class="card mb-2">
@@ -414,6 +649,7 @@
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
                                                 <h6 class="card-title">${horario.nome_config}</h6>
+                                                ${deptInfo}
                                                 <p class="card-text mb-1">
                                                     <small class="text-muted">
                                                         <i class="fas fa-clock me-1"></i>
@@ -435,9 +671,14 @@
                                             </div>
                                             <div>
                                                 ${horario.nome_config !== 'Horário Padrão' ? 
-                                                    `<button class="btn btn-sm btn-outline-danger" onclick="excluirHorario(${horario.id})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>` : 
+                                                    `<div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="editarHorario(${horario.id})" title="Editar horário">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="excluirHorario(${horario.id})" title="Excluir horário">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>` : 
                                                     `<span class="badge badge-primary">Padrão</span>`
                                                 }
                                             </div>
@@ -451,8 +692,109 @@
                 .catch(error => console.error('Erro ao carregar horários:', error));
         }
         
+        let horarioEditandoId = null;
+        
+        function editarHorario(id) {
+            // Buscar dados do horário
+            fetch('/api/configuracoes/horarios')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const horario = data.horarios.find(h => h.id === id);
+                        if (!horario) {
+                            alert('Horário não encontrado!');
+                            return;
+                        }
+                        
+                        // Preencher formulário com dados do horário
+                        document.getElementById('nomeConfig').value = horario.nome_config;
+                        document.getElementById('horaEntrada').value = horario.hora_entrada.substring(0, 5); // HH:MM
+                        document.getElementById('horaSaida').value = horario.hora_saida.substring(0, 5); // HH:MM
+                        document.getElementById('toleranciaEntrada').value = horario.tolerancia_entrada;
+                        document.getElementById('toleranciaSaida').value = horario.tolerancia_saida;
+                        
+                        // Limpar checkboxes
+                        document.querySelectorAll('#formHorarios input[type="checkbox"]').forEach(cb => {
+                            cb.checked = false;
+                        });
+                        
+                        // Marcar dias da semana
+                        // No banco pode estar como 1,2,3,4,5 (Segunda=1, Terça=2, etc.) ou 0-6
+                        // Nos checkboxes: domingo=0, segunda=1, terca=2, quarta=3, quinta=4, sexta=5, sabado=6
+                        if (horario.dias_semana) {
+                            const dias = horario.dias_semana.split(',').map(d => parseInt(d.trim()));
+                            // Mapeamento: banco pode usar 1-7 ou 0-6, converter para IDs dos checkboxes
+                            const mapeamentoDias = {
+                                0: 'domingo',   // Domingo
+                                1: 'segunda',   // Segunda
+                                2: 'terca',     // Terça
+                                3: 'quarta',    // Quarta
+                                4: 'quinta',    // Quinta
+                                5: 'sexta',     // Sexta
+                                6: 'sabado'     // Sábado
+                            };
+                            
+                            dias.forEach(dia => {
+                                // Se o banco usar 1-7, ajustar para 0-6
+                                let diaAjustado = dia;
+                                if (dia > 6) {
+                                    diaAjustado = dia - 1; // Converter 7 para 6 (domingo)
+                                }
+                                
+                                const checkboxId = mapeamentoDias[diaAjustado];
+                                if (checkboxId) {
+                                    const checkbox = document.getElementById(checkboxId);
+                                    if (checkbox) checkbox.checked = true;
+                                }
+                            });
+                        }
+                        
+                        // Marcar que está editando
+                        horarioEditandoId = id;
+                        
+                        // Alterar texto do botão
+                        const btnSalvar = document.querySelector('#formHorarios button[type="submit"]');
+                        btnSalvar.innerHTML = '<i class="fas fa-save me-2"></i>Atualizar Horário';
+                        btnSalvar.classList.remove('btn-primary');
+                        btnSalvar.classList.add('btn-success');
+                        
+                        // Adicionar botão cancelar se não existir
+                        if (!document.getElementById('btnCancelarEdicao')) {
+                            const btnCancelar = document.createElement('button');
+                            btnCancelar.type = 'button';
+                            btnCancelar.className = 'btn btn-secondary mt-3 ms-2';
+                            btnCancelar.id = 'btnCancelarEdicao';
+                            btnCancelar.innerHTML = '<i class="fas fa-times me-2"></i>Cancelar';
+                            btnCancelar.onclick = cancelarEdicao;
+                            btnSalvar.parentElement.appendChild(btnCancelar);
+                        }
+                        document.getElementById('btnCancelarEdicao').style.display = 'inline-block';
+                        
+                        // Scroll para o formulário
+                        document.getElementById('nomeConfig').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        document.getElementById('nomeConfig').focus();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar horário:', error);
+                    alert('Erro ao carregar dados do horário');
+                });
+        }
+        
+        function cancelarEdicao() {
+            horarioEditandoId = null;
+            document.getElementById('formHorarios').reset();
+            const btnSalvar = document.querySelector('#formHorarios button[type="submit"]');
+            btnSalvar.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Horário';
+            btnSalvar.classList.remove('btn-success');
+            btnSalvar.classList.add('btn-primary');
+            if (document.getElementById('btnCancelarEdicao')) {
+                document.getElementById('btnCancelarEdicao').style.display = 'none';
+            }
+        }
+        
         function excluirHorario(id) {
-            if (confirm('Tem certeza que deseja excluir este horário?')) {
+            if (confirm('Tem certeza que deseja excluir este horário?\n\nATENÇÃO: Se este horário estiver atribuído a algum departamento, a atribuição também será removida.')) {
                 fetch(`/api/configuracoes/horarios/${id}`, {
                     method: 'DELETE'
                 })
@@ -461,6 +803,10 @@
                     if (data.success) {
                         alert('Horário excluído com sucesso!');
                         carregarHorarios();
+                        // Recarregar atribuições se estiver na aba de atribuição
+                        if (document.getElementById('atribuir-departamentos').classList.contains('active')) {
+                            carregarAtribuicoesDepartamentos();
+                        }
                     } else {
                         alert('Erro ao excluir: ' + data.error);
                     }
@@ -486,31 +832,292 @@
                 hora_saida: document.getElementById('horaSaida').value,
                 tolerancia_entrada: parseInt(document.getElementById('toleranciaEntrada').value),
                 tolerancia_saida: parseInt(document.getElementById('toleranciaSaida').value),
-                dias_semana: dias.join(',')
+                dias_semana: dias.join(','),
+                departamento: null  // Horários são cadastrados sem departamento, depois são atribuídos
             };
             
-            fetch('/api/configuracoes/horarios', {
-                method: 'POST',
+            // Verificar se está editando ou criando novo
+            // Usar a mesma rota POST, mas incluir horario_id no corpo se for atualização
+            const url = '/api/configuracoes/horarios';
+            const method = 'POST';
+            
+            // Se estiver editando, adicionar horario_id aos dados
+            if (horarioEditandoId) {
+                data.horario_id = horarioEditandoId;
+            }
+            
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                // Verificar se a resposta é JSON
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
-                    alert('Horário salvo com sucesso!');
+                    alert(horarioEditandoId ? 'Horário atualizado com sucesso!' : 'Horário salvo com sucesso!');
                     document.getElementById('formHorarios').reset();
+                    cancelarEdicao();
                     carregarHorarios();
+                    // Recarregar atribuições se estiver na aba de atribuição
+                    if (document.getElementById('atribuir-departamentos').classList.contains('active')) {
+                        carregarAtribuicoesDepartamentos();
+                    }
                 } else {
-                    alert('Erro ao salvar: ' + data.error);
+                    alert('Erro ao salvar: ' + (data.error || 'Erro desconhecido'));
                 }
             })
             .catch(error => {
                 console.error('Erro:', error);
-                alert('Erro ao salvar horário');
+                alert('Erro ao salvar horário: ' + error.message);
             });
         });
+        
+        // Funções para atribuir horários aos departamentos
+        async function carregarAtribuicoesDepartamentos() {
+            try {
+                // Buscar departamentos e horários em paralelo
+                const [deptResponse, horariosResponse] = await Promise.all([
+                    fetch('/api/analytics/departamentos'),
+                    fetch('/api/configuracoes/horarios')
+                ]);
+                
+                const deptData = await deptResponse.json();
+                const horariosData = await horariosResponse.json();
+                
+                if (!deptData.success || !horariosData.success) {
+                    throw new Error('Erro ao carregar dados');
+                }
+                
+                const departamentos = deptData.departamentos || [];
+                const horarios = horariosData.horarios || [];
+                
+                // Buscar atribuições atuais (horários com departamento)
+                const atribuicoesAtuais = {};
+                horarios.forEach(h => {
+                    if (h.departamento) {
+                        atribuicoesAtuais[h.departamento] = h.id;
+                    }
+                });
+                
+                const listaAtribuicoes = document.getElementById('listaAtribuicoes');
+                
+                if (departamentos.length === 0) {
+                    listaAtribuicoes.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Nenhum departamento cadastrado no sistema.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                if (horarios.length === 0) {
+                    listaAtribuicoes.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Nenhum horário cadastrado. Cadastre horários primeiro na aba "Cadastrar Horários".
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Criar interface de atribuição
+                let html = '<div class="table-responsive"><table class="table table-hover">';
+                html += '<thead><tr><th>Departamento</th><th>Horários Atribuídos</th><th>Adicionar Horário</th></tr></thead><tbody>';
+                
+                departamentos.forEach(dept => {
+                    // Buscar todos os horários atribuídos a este departamento
+                    const horariosAtribuidos = horarios.filter(h => h.departamento === dept);
+                    
+                    // Converter dias da semana para texto
+                    const formatarDias = (diasStr) => {
+                        if (!diasStr) return '';
+                        const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                        return diasStr.split(',').map(d => nomes[parseInt(d) - 1] || d).join(', ');
+                    };
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${dept}</strong></td>
+                            <td>
+                                ${horariosAtribuidos.length > 0 ? 
+                                    horariosAtribuidos.map(h => `
+                                        <div class="mb-2 p-2 border rounded">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>${h.nome_config}</strong><br>
+                                                    <small class="text-muted">
+                                                        ${h.hora_entrada} - ${h.hora_saida} | 
+                                                        Dias: ${formatarDias(h.dias_semana)}
+                                                    </small>
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-danger" onclick="removerAtribuicaoEspecifica(${h.id}, '${dept}')" title="Remover este horário">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('') :
+                                    '<span class="text-muted">Nenhum horário atribuído (usará Horário Padrão)</span>'
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="horario_${dept.replace(/\s+/g, '_')}" data-departamento="${dept}">
+                                        <option value="">Selecione um horário...</option>
+                                        ${(() => {
+                                            // Filtrar horários já atribuídos e remover duplicatas
+                                            const horariosDisponiveis = [];
+                                            const nomesVistos = new Set();
+                                            
+                                            horarios.forEach(h => {
+                                                // Não mostrar horários já atribuídos a este departamento
+                                                const jaAtribuido = horariosAtribuidos.some(ha => ha.id === h.id);
+                                                if (jaAtribuido) return;
+                                                
+                                                // Para "Horário Padrão", mostrar apenas uma vez
+                                                if (h.nome_config === 'Horário Padrão') {
+                                                    if (!nomesVistos.has('Horário Padrão')) {
+                                                        horariosDisponiveis.push(h);
+                                                        nomesVistos.add('Horário Padrão');
+                                                    }
+                                                } else {
+                                                    // Para outros horários, verificar se já foi visto
+                                                    const chave = `${h.nome_config}_${h.hora_entrada}_${h.hora_saida}_${h.dias_semana}`;
+                                                    if (!nomesVistos.has(chave)) {
+                                                        horariosDisponiveis.push(h);
+                                                        nomesVistos.add(chave);
+                                                    }
+                                                }
+                                            });
+                                            
+                                            return horariosDisponiveis.map(h => 
+                                                `<option value="${h.id}">
+                                                    ${h.nome_config} (${h.hora_entrada} - ${h.hora_saida}) - ${formatarDias(h.dias_semana)}
+                                                </option>`
+                                            ).join('');
+                                        })()}
+                                    </select>
+                                    <button class="btn btn-sm btn-primary" onclick="adicionarHorarioDepartamento('${dept}')" title="Adicionar este horário">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+                listaAtribuicoes.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Erro ao carregar atribuições:', error);
+                document.getElementById('listaAtribuicoes').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Erro ao carregar departamentos e horários: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function adicionarHorarioDepartamento(departamento) {
+            try {
+                const selectId = `horario_${departamento.replace(/\s+/g, '_')}`;
+                const select = document.getElementById(selectId);
+                const horarioId = select.value;
+                
+                if (!horarioId) {
+                    alert('Por favor, selecione um horário para adicionar.');
+                    return;
+                }
+                
+                // Buscar dados do horário selecionado
+                const horariosResponse = await fetch('/api/configuracoes/horarios');
+                const horariosData = await horariosResponse.json();
+                const horario = horariosData.horarios.find(h => h.id == horarioId);
+                
+                if (!horario) {
+                    alert('Horário não encontrado!');
+                    return;
+                }
+                
+                // Verificar se já existe este horário atribuído a este departamento
+                const horariosAtribuidos = horariosData.horarios.filter(h => 
+                    h.departamento === departamento && h.id == horarioId
+                );
+                
+                if (horariosAtribuidos.length > 0) {
+                    alert('Este horário já está atribuído a este departamento!');
+                    return;
+                }
+                
+                // Criar uma cópia do horário com o departamento atribuído
+                const data = {
+                    nome_config: horario.nome_config,  // Manter o nome original
+                    hora_entrada: horario.hora_entrada,
+                    hora_saida: horario.hora_saida,
+                    tolerancia_entrada: horario.tolerancia_entrada,
+                    tolerancia_saida: horario.tolerancia_saida,
+                    dias_semana: horario.dias_semana,
+                    departamento: departamento
+                };
+                
+                // Criar nova atribuição
+                const response = await fetch('/api/configuracoes/horarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    // Limpar seleção
+                    select.value = '';
+                    // Recarregar
+                    carregarHorarios();
+                    carregarAtribuicoesDepartamentos();
+                } else {
+                    alert('Erro ao salvar: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Erro ao adicionar horário:', error);
+                alert('Erro ao adicionar horário: ' + error.message);
+            }
+        }
+        
+        async function removerAtribuicaoEspecifica(horarioId, departamento) {
+            if (!confirm(`Tem certeza que deseja remover este horário do departamento "${departamento}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/configuracoes/horarios/${horarioId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    carregarHorarios();
+                    carregarAtribuicoesDepartamentos();
+                } else {
+                    alert('Erro ao remover: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erro ao remover atribuição:', error);
+                alert('Erro ao remover atribuição: ' + error.message);
+            }
+        }
         
         // Funções para feriados
         function abrirModalFeriados() {
@@ -625,6 +1232,66 @@
                 alert('Erro ao salvar feriado');
             });
         });
+        
+        // ========================================
+        // GERENCIAMENTO DE MÉTODOS DE ACESSO
+        // ========================================
+        
+        // Carregar métodos de acesso ao carregar a página
+        function carregarMetodosAcesso() {
+            fetch('/api/configuracoes/metodos-acesso')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.metodos) {
+                        document.getElementById('metodoFacial').checked = data.metodos.facial !== false;
+                        document.getElementById('metodoManual').checked = data.metodos.manual !== false;
+                        document.getElementById('metodoRFID').checked = data.metodos.rfid !== false;
+                        document.getElementById('metodoQRCode').checked = data.metodos.qrcode !== false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar métodos de acesso:', error);
+                });
+        }
+        
+        // Salvar métodos de acesso
+        function salvarMetodosAcesso() {
+            const metodos = {
+                facial: document.getElementById('metodoFacial').checked,
+                manual: document.getElementById('metodoManual').checked,
+                rfid: document.getElementById('metodoRFID').checked,
+                qrcode: document.getElementById('metodoQRCode').checked
+            };
+            
+            const statusDiv = document.getElementById('metodosAcessoStatus');
+            statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Salvando...</div>';
+            
+            fetch('/api/configuracoes/metodos-acesso', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ metodos: metodos })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Configurações salvas com sucesso!</div>';
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
+                    }, 3000);
+                } else {
+                    statusDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro: ${data.message || 'Erro ao salvar'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Erro ao salvar configurações</div>';
+            });
+        }
+        
+        // Carregar métodos ao iniciar
+        carregarMetodosAcesso();
     </script>
 </body>
 </html> 

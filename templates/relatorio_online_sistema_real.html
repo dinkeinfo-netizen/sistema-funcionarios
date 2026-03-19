@@ -91,33 +91,75 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 35px 30px;
             text-align: center;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: all 0.3s ease;
             margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
         
         .stats-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+        }
+        
+        .stats-card:hover::before {
+            opacity: 1;
+        }
+        
+        .stats-icon {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            opacity: 0.9;
+            display: block;
         }
         
         .stats-number {
-            font-size: 3rem;
-            font-weight: 800;
-            color: #2d3748;
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1;
+            animation: numberPulse 2s ease-in-out infinite;
+        }
+        
+        .stats-card:nth-child(2) .stats-number {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        @keyframes numberPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
         
         .stats-label {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #718096;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #4a5568;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
+            margin-top: 10px;
         }
         
         /* Cards das tabelas melhorados */
@@ -143,11 +185,40 @@
             border: none;
             font-weight: 600;
             font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
         
         .card-header h5 {
             margin: 0;
             font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .card-header .badge {
+            background: rgba(255, 255, 255, 0.25) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-weight: 700;
+            padding: 8px 14px;
+            font-size: 0.95rem;
         }
         
         .badge {
@@ -179,10 +250,20 @@
             vertical-align: middle;
         }
         
-        .table tbody tr:hover {
-            background: rgba(102, 126, 234, 0.05);
-            transform: scale(1.01);
+        .table tbody tr {
             transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.08);
+            transform: translateX(5px);
+            border-left-color: #667eea;
+            box-shadow: -2px 0 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        .table tbody tr:last-child td {
+            border-bottom: none;
         }
         
         .table-container {
@@ -316,7 +397,7 @@
                     </h1>
                     <p class="mb-0 text-muted">
                         <span class="status-indicator status-online"></span>
-                        Conectado ao sistema real • Próxima atualização em <span id="countdown">30</span> segundos
+                        Conectado ao sistema real • Próxima atualização em <span id="countdown">10</span> segundos
                     </p>
                 </div>
                 <div class="col-md-4 text-end">
@@ -332,14 +413,40 @@
         <div class="row" id="stats-container">
             <div class="col-md-6">
                 <div class="stats-card fade-in-up" style="animation-delay: 0.1s;">
+                    <i class="fas fa-user-check stats-icon" style="color: #667eea;"></i>
                     <div class="stats-number" id="total-presentes">0</div>
                     <div class="stats-label">Funcionários Presentes</div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="stats-card fade-in-up" style="animation-delay: 0.2s; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                <div class="stats-card fade-in-up" style="animation-delay: 0.2s;">
+                    <i class="fas fa-sign-out-alt stats-icon" style="color: #48bb78;"></i>
                     <div class="stats-number" id="total-saidos">0</div>
                     <div class="stats-label">Funcionários que Saíram</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Barra de informações adicionais -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card fade-in-up" style="animation-delay: 0.25s; background: rgba(255, 255, 255, 0.95);">
+                    <div class="card-body py-3">
+                        <div class="row align-items-center text-center">
+                            <div class="col-md-4">
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                <strong>Horário Atual:</strong> <span id="current-time">--:--:--</span>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-calendar text-success me-2"></i>
+                                <strong>Data:</strong> <span id="current-date">--/--/----</span>
+                            </div>
+                            <div class="col-md-4">
+                                <i class="fas fa-sync-alt text-info me-2"></i>
+                                <strong>Última Atualização:</strong> <span id="last-update">--:--:--</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -431,46 +538,91 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let countdown = 30;
+        let countdown = 10;
         let countdownInterval;
+        
+        let carregandoDados = false; // Flag para evitar múltiplas requisições simultâneas
         
         // Função para carregar dados
         async function carregarDados() {
+            // Evitar múltiplas requisições simultâneas
+            if (carregandoDados) {
+                console.log('⚠️ Carregamento já em andamento, ignorando...');
+                return;
+            }
+            
+            carregandoDados = true;
+            
             try {
-                // Carregar dados principais
-                const response = await fetch('/api/relatorio-online-data');
-                const data = await response.json();
-                
-                if (data.error) {
-                    mostrarErro(data.error);
-                    return;
+                // Mostrar loading apenas se ainda não tiver dados
+                if (presentesData.length === 0 && saidosData.length === 0) {
+                    document.getElementById('loading-container').style.display = 'flex';
                 }
                 
-                // Atualizar estatísticas
-                document.getElementById('total-presentes').textContent = data.total_presentes || 0;
-                document.getElementById('total-saidos').textContent = data.total_sairam || 0;
-                document.getElementById('count-presentes').textContent = data.total_presentes || 0;
-                document.getElementById('count-saidos').textContent = data.total_sairam || 0;
+                // Carregar dados principais com timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos timeout
                 
-                // Armazenar dados para ordenação
-                presentesData = data.presentes || [];
-                saidosData = data.sairam || [];
-                
-                // Atualizar tabelas
-                updateTable('presentes-tbody', presentesData);
-                updateTable('saidos-tbody', saidosData);
-                
-                // Configurar ordenação
-                setupSorting('presentes-tbody', presentesData);
-                setupSorting('saidos-tbody', saidosData);
-                
-                // Mostrar conteúdo e esconder loading
-                document.getElementById('loading-container').style.display = 'none';
-                document.getElementById('content-container').style.display = 'block';
-                document.getElementById('error-container').style.display = 'none';
+                try {
+                    const response = await fetch('/api/relatorio-online-data', {
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        mostrarErro(data.error);
+                        carregandoDados = false;
+                        return;
+                    }
+                    
+                    // Atualizar estatísticas com animação
+                    const totalPresentes = data.total_presentes || 0;
+                    const totalSaidos = data.total_saidos || data.total_sairam || 0;
+                    
+                    // Animação de contagem
+                    animateNumber('total-presentes', totalPresentes);
+                    animateNumber('total-saidos', totalSaidos);
+                    
+                    document.getElementById('count-presentes').textContent = totalPresentes;
+                    document.getElementById('count-saidos').textContent = totalSaidos;
+                    
+                    // Armazenar dados para ordenação
+                    presentesData = data.presentes || [];
+                    saidosData = data.saidos || data.sairam || [];
+                    
+                    // Atualizar tabelas
+                    updateTable('presentes-tbody', presentesData);
+                    updateTable('saidos-tbody', saidosData);
+                    
+                    // Configurar ordenação
+                    setupSorting('presentes-tbody', presentesData);
+                    setupSorting('saidos-tbody', saidosData);
+                    
+                    // Mostrar conteúdo e esconder loading
+                    document.getElementById('loading-container').style.display = 'none';
+                    document.getElementById('content-container').style.display = 'block';
+                    document.getElementById('error-container').style.display = 'none';
+                    
+                } catch (fetchError) {
+                    clearTimeout(timeoutId);
+                    if (fetchError.name === 'AbortError') {
+                        throw new Error('Timeout ao carregar dados. Tente recarregar a página.');
+                    }
+                    throw fetchError;
+                }
                 
             } catch (error) {
+                console.error('Erro ao carregar dados:', error);
                 mostrarErro('Erro ao carregar dados: ' + error.message);
+            } finally {
+                carregandoDados = false;
             }
         }
         
@@ -490,11 +642,40 @@
             }
             
             if (countdown <= 0) {
-                countdown = 30;
+                countdown = 10;
                 carregarDados();
             } else {
                 countdown--;
             }
+        }
+        
+        // Função para animar números
+        function animateNumber(elementId, targetValue) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            const startValue = parseInt(element.textContent) || 0;
+            const duration = 500; // ms
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function (ease-out)
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * easeOut);
+                
+                element.textContent = currentValue;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.textContent = targetValue;
+                }
+            }
+            
+            requestAnimationFrame(update);
         }
         
         // Variáveis para ordenação
@@ -598,27 +779,59 @@
             });
         }
         
+        // Função para atualizar horário atual
+        function atualizarHorario() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR');
+            const dateStr = now.toLocaleDateString('pt-BR');
+            
+            const timeElement = document.getElementById('current-time');
+            const dateElement = document.getElementById('current-date');
+            
+            if (timeElement) timeElement.textContent = timeStr;
+            if (dateElement) dateElement.textContent = dateStr;
+        }
+        
+        // Função para atualizar última atualização
+        function atualizarUltimaAtualizacao() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR');
+            const updateElement = document.getElementById('last-update');
+            if (updateElement) updateElement.textContent = timeStr;
+        }
+        
         // Inicializar
         document.addEventListener('DOMContentLoaded', function() {
+            // Atualizar horário imediatamente
+            atualizarHorario();
+            
+            // Atualizar horário a cada segundo
+            setInterval(atualizarHorario, 1000);
+            
             // Carregar dados iniciais
             carregarDados();
             
             // Iniciar countdown
             countdownInterval = setInterval(atualizarCountdown, 1000);
             
-            // Atualizar dados a cada 30 segundos
-            setInterval(carregarDados, 30000);
+            // Atualizar dados a cada 30 segundos (aumentado para evitar sobrecarga e muitas conexões)
+            setInterval(() => {
+                if (!carregandoDados) {
+                    carregarDados();
+                    atualizarUltimaAtualizacao();
+                }
+            }, 30000);
         });
     </script>
     
     <!-- Footer com crédito -->
-    <footer class="footer-credit">
+     <footer class="footer-credit">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <span class="text-muted">
                         <i class="fas fa-copyright me-1"></i>
-                        2024 Sistema de Controle de Acesso
+                        2025 Sistema de Controle de Acesso
                     </span>
                 </div>
                 <div class="col-md-6 text-end">

@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap JS para dropdown -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <style>
         body {
@@ -115,10 +117,35 @@
     </style>
 </head>
 <body>
-    <div class="admin-container">
-        <!-- Header -->
-        <div class="admin-header">
-            <div class="row align-items-center">
+    <div class="container-fluid" style="margin-top: 0; padding-top: 0;">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-none d-md-block p-0">
+                {% include 'components/sidebar.html' %}
+            </div>
+            
+            <!-- Conteúdo Principal -->
+            <div class="col-md-9 col-lg-10 offset-md-3 offset-lg-2">
+                <!-- Breadcrumbs -->
+                {% block breadcrumbs %}
+                {% include 'components/breadcrumbs.html' %}
+                <script>
+                    document.querySelector('.breadcrumb').innerHTML += `
+                        <li class="breadcrumb-item"><a href="{{ url_for('admin') }}">Admin</a></li>
+                        <li class="breadcrumb-item active">Funcionários</li>
+                    `;
+                </script>
+                {% endblock %}
+                
+                <!-- Botão para abrir sidebar no mobile -->
+                <button class="btn btn-primary d-md-none mb-3" onclick="toggleSidebar()" style="position: fixed; top: 70px; left: 10px; z-index: 997;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <div class="admin-container" style="margin: 20px 0;">
+                    <!-- Header -->
+                    <div class="admin-header">
+                        <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1><i class="fas fa-users me-3"></i>Gestão de Usuários</h1>
                     <p class="mb-0">Gerenciar funcionários cadastrados no sistema</p>
@@ -477,8 +504,7 @@
         </div>
     </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS (já carregado no head para dropdown) -->
     
     <script>
         // Variáveis globais
@@ -802,5 +828,10 @@
             });
         });
     </script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
-</html> 
+</html>

@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics e Relatórios - Sistema de Controle de Funcionários</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .header-section .btn {
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .header-section .row {
+                text-align: center;
+            }
+            
+            .header-section .col-md-4 {
+                margin-top: 15px;
+            }
+            
+            .header-section h1 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        .content-section {
+            padding: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-left: 5px solid var(--primary-color);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.success {
+            border-left-color: var(--success-color);
+        }
+        
+        .stat-card.warning {
+            border-left-color: var(--warning-color);
+        }
+        
+        .stat-card.danger {
+            border-left-color: var(--danger-color);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .chart-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chart-title i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .filters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .btn-analytics {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-analytics:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            color: white;
+        }
+        
+        .btn-export {
+            background: linear-gradient(135deg, var(--success-color) 0%, #047857 100%);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(5, 150, 105, 0.3);
+            color: white;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background: var(--light-color);
+            border: none;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+        
+        .table td {
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        
+        .badge-custom {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary-color);
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid var(--danger-color);
+            display: none; /* Ocultar mensagens de erro por padrão */
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid var(--success-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-chart-line me-3"></i>Analytics e Relatórios</h1>
+                    <p class="mb-0">Análise avançada de dados de acesso e produtividade</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-light btn-sm me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Voltar
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content-section">
+            <!-- Filtros -->
+            <div class="filters-section">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Data Início</label>
+                        <input type="date" class="form-control" id="dataInicio" value="">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Fim</label>
+                        <input type="date" class="form-control" id="dataFim" value="">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Departamento</label>
+                        <select class="form-select" id="departamento">
+                            <option value="">Todos os departamentos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button class="btn btn-analytics" onclick="carregarDados()">
+                                <i class="fas fa-sync me-2"></i>Atualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estatísticas Gerais -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Carregando estatísticas...</p>
+                </div>
+            </div>
+            
+            <!-- Mensagem de erro/sucesso -->
+            <div id="messageContainer"></div>
+            
+            <!-- Gráficos -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-clock"></i>
+                            Acessos por Hora
+                        </div>
+                        <canvas id="chartHorarios"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-building"></i>
+                            Acessos por Departamento
+                        </div>
+                        <canvas id="chartDepartamentos"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-calendar-week"></i>
+                            Padrões por Dia da Semana
+                        </div>
+                        <canvas id="chartSemana"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-trending-up"></i>
+                            Tendências de Acesso
+                        </div>
+                        <canvas id="chartTendencias"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Relatório de Produtividade -->
+            <div class="table-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="chart-title">
+                        <i class="fas fa-users"></i>
+                        Relatório de Produtividade
+                    </div>
+                    <button class="btn btn-export" onclick="exportarRelatorio()">
+                        <i class="fas fa-download me-2"></i>Exportar Excel
+                    </button>
+                </div>
+                <div id="tabelaProdutividade">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <p>Carregando relatório...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botões de Navegação -->
+            <div class="text-center mt-4">
+                <a href="/admin" class="btn btn-secondary me-3">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar ao Admin
+                </a>
+                <a href="/admin/dashboard" class="btn btn-primary">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variáveis globais para gráficos
+        let chartHorarios = null;
+        let chartDepartamentos = null;
+        let chartSemana = null;
+        let chartTendencias = null;
+        
+        // Configurar datas padrão
+        document.addEventListener('DOMContentLoaded', function() {
+            const hoje = new Date();
+            // Ajustar para o fuso horário local
+            const hojeLocal = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const trintaDiasAtras = new Date(hojeLocal);
+            trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+            
+            // Formatar datas no formato YYYY-MM-DD
+            const formatarData = (data) => {
+                const ano = data.getFullYear();
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            };
+            
+            document.getElementById('dataInicio').value = formatarData(trintaDiasAtras);
+            document.getElementById('dataFim').value = formatarData(hojeLocal);
+            
+            console.log('Data início:', formatarData(trintaDiasAtras));
+            console.log('Data fim:', formatarData(hojeLocal));
+            console.log('Data atual do sistema:', hoje);
+            
+            carregarDepartamentos();
+            carregarDados();
+        });
+        
+        // Carregar lista de departamentos
+        async function carregarDepartamentos() {
+            try {
+                const response = await fetch('/api/analytics/departamentos');
+                const data = await response.json();
+                
+                if (data.success && data.departamentos) {
+                    const select = document.getElementById('departamento');
+                    // Limpar opções existentes (exceto "Todos")
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    
+                    // Adicionar departamentos
+                    data.departamentos.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept;
+                        option.textContent = dept;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar departamentos:', error);
+            }
+        }
+        
+        // Carregar dados iniciais
+        async function carregarDados() {
+            try {
+                // Carregar em paralelo, mas tratar erros individualmente
+                const promises = [
+                    carregarEstatisticas().catch(err => {
+                        console.error('Erro ao carregar estatísticas:', err);
+                        mostrarErro('Erro ao carregar estatísticas: ' + err.message);
+                    }),
+                    carregarAnalisePadroes().catch(err => {
+                        console.error('Erro ao carregar análise de padrões:', err);
+                        mostrarErro('Erro ao carregar análise de padrões: ' + err.message);
+                    }),
+                    carregarRelatorioProdutividade().catch(err => {
+                        console.error('Erro ao carregar relatório:', err);
+                        mostrarErro('Erro ao carregar relatório: ' + err.message);
+                    }),
+                    carregarTendencias().catch(err => {
+                        console.error('Erro ao carregar tendências:', err);
+                        mostrarErro('Erro ao carregar tendências: ' + err.message);
+                    })
+                ];
+                
+                await Promise.allSettled(promises);
+            } catch (error) {
+                console.error('Erro geral ao carregar dados:', error);
+                mostrarErro('Erro ao carregar dados. Verifique a conexão e tente novamente.');
+            }
+        }
+        
+        // Carregar estatísticas gerais
+        async function carregarEstatisticas() {
+            try {
+                const response = await fetch('/api/analytics/estatisticas-gerais');
+                
+                // Verificar se foi redirecionado para login
+                if (response.redirected && response.url.includes('/admin/login')) {
+                    mostrarErro('Sessão expirada. Faça login novamente.');
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    exibirEstatisticas(data.data);
+                } else {
+                    mostrarErro('Erro ao carregar estatísticas: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+                mostrarErro('Erro ao carregar estatísticas: ' + error.message);
+            }
+        }
+        
+        // Exibir estatísticas
+        function exibirEstatisticas(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            const variacao = stats.acessos_ontem > 0 ? 
+                ((stats.acessos_hoje - stats.acessos_ontem) / stats.acessos_ontem * 100).toFixed(1) : 0;
+            
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon text-primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-value">${stats.total_funcionarios}</div>
+                    <div class="stat-label">Total de Funcionários</div>
+                </div>
+                
+                <div class="stat-card success">
+                    <div class="stat-icon text-success">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <div class="stat-value">${stats.acessos_hoje}</div>
+                    <div class="stat-label">Acessos Hoje</div>
+                </div>
+                
+                <div class="stat-card warning">
+                    <div class="stat-icon text-warning">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-value">${variacao > 0 ? '+' : ''}${variacao}%</div>
+                    <div class="stat-label">Variação vs Ontem</div>
+                </div>
+                
+                <div class="stat-card danger">
+                    <div class="stat-icon text-danger">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value">${stats.horarios_pico[0] ? stats.horarios_pico[0][0] + 'h' : 'N/A'}</div>
+                    <div class="stat-label">Horário de Pico</div>
+                </div>
+            `;
+        }
+        
+        // Carregar análise de padrões
+        async function carregarAnalisePadroes() {
+            try {
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                
+                const response = await fetch(`/api/analytics/analise-padroes?data_inicio=${dataInicio}&data_fim=${dataFim}`);
+                
+                // Verificar se foi redirecionado para login
+                if (response.redirected && response.url.includes('/admin/login')) {
+                    mostrarErro('Sessão expirada. Faça login novamente.');
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Dados de padrões:', data);
+                
+                if (data.success && data.data) {
+                    if (data.data.padroes_hora && data.data.padroes_hora.length > 0) {
+                        criarGraficoHorarios(data.data.padroes_hora);
+                    } else {
+                        console.warn('Nenhum dado de padrões por hora encontrado');
+                    }
+                    
+                    if (data.data.padroes_semana && data.data.padroes_semana.length > 0) {
+                        criarGraficoSemana(data.data.padroes_semana);
+                    } else {
+                        console.warn('Nenhum dado de padrões por semana encontrado');
+                    }
+                    
+                    // Usar análise de pontualidade para gráfico de departamentos se disponível
+                    if (data.data.analise_pontualidade && data.data.analise_pontualidade.length > 0) {
+                        const deptData = data.data.analise_pontualidade.map(item => [item[0], item[1]]);
+                        criarGraficoDepartamentos(deptData);
+                    }
+                } else {
+                    mostrarErro('Erro ao carregar análise de padrões: ' + (data.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro ao carregar análise de padrões:', error);
+                mostrarErro('Erro ao carregar análise de padrões: ' + error.message);
+            }
+        }
+        
+        // Carregar relatório de produtividade
+        async function carregarRelatorioProdutividade() {
+            const container = document.getElementById('tabelaProdutividade');
+            if (!container) {
+                console.error('Container tabelaProdutividade não encontrado');
+                return;
+            }
+            
+            try {
+                container.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i><p>Carregando relatório...</p></div>';
+                
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                const departamento = document.getElementById('departamento').value;
+                
+                let url = `/api/analytics/relatorio-produtividade?data_inicio=${dataInicio}&data_fim=${dataFim}`;
+                if (departamento) url += `&departamento=${departamento}`;
+                
+                const response = await fetch(url);
+                
+                // Verificar se foi redirecionado para login
+                if (response.redirected && response.url.includes('/admin/login')) {
+                    mostrarErro('Sessão expirada. Faça login novamente.');
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
+                    return;
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Erro HTTP:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Dados do relatório:', data);
+                
+                if (data.success) {
+                    if (data.data && Array.isArray(data.data)) {
+                        exibirRelatorioProdutividade(data.data);
+                    } else {
+                        container.innerHTML = '<p class="text-center text-muted">Nenhum dado encontrado para o período selecionado.</p>';
+                    }
+                } else {
+                    const errorMsg = data.message || data.error || 'Erro desconhecido';
+                    mostrarErro('Erro ao carregar relatório: ' + errorMsg);
+                    container.innerHTML = '<p class="text-center text-danger">Erro ao carregar relatório. Tente novamente.</p>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar relatório:', error);
+                mostrarErro('Erro ao carregar relatório: ' + error.message);
+                container.innerHTML = '<p class="text-center text-danger">Erro ao carregar relatório: ' + error.message + '</p>';
+            }
+        }
+        
+        // Carregar tendências
+        async function carregarTendencias() {
+            try {
+                const response = await fetch('/api/analytics/tendencias?dias=30');
+                
+                // Verificar se foi redirecionado para login
+                if (response.redirected && response.url.includes('/admin/login')) {
+                    mostrarErro('Sessão expirada. Faça login novamente.');
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Dados de tendências:', data);
+                
+                if (data.success && data.data) {
+                    if (data.data.tendencias_diarias && data.data.tendencias_diarias.length > 0) {
+                        criarGraficoTendencias(data.data.tendencias_diarias);
+                    } else {
+                        console.warn('Nenhum dado de tendências diárias encontrado');
+                    }
+                    
+                    // Usar acessos por departamento se disponível, senão usar métodos de acesso
+                    if (data.data.acessos_departamento && data.data.acessos_departamento.length > 0) {
+                        criarGraficoDepartamentos(data.data.acessos_departamento);
+                    } else if (data.data.metodos_acesso && data.data.metodos_acesso.length > 0) {
+                        criarGraficoDepartamentos(data.data.metodos_acesso);
+                    } else {
+                        console.warn('Nenhum dado de departamentos encontrado');
+                    }
+                } else {
+                    mostrarErro('Erro ao carregar tendências: ' + (data.message || 'Erro desconhecido'));
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tendências:', error);
+                mostrarErro('Erro ao carregar tendências: ' + error.message);
+            }
+        }
+        
+        // Criar gráfico de horários
+        function criarGraficoHorarios(dados) {
+            if (!dados || dados.length === 0) {
+                console.warn('Dados de horários vazios');
+                return;
+            }
+            
+            const ctx = document.getElementById('chartHorarios');
+            if (!ctx) return;
+            
+            // Destruir gráfico anterior se existir
+            if (chartHorarios) {
+                chartHorarios.destroy();
+            }
+            
+            const labels = dados.map(item => (item[0] || 0) + 'h');
+            const entradas = dados.map(item => item[2] || 0);
+            const saidas = dados.map(item => item[3] || 0);
+            
+            chartHorarios = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Entradas',
+                        data: entradas,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Saídas',
+                        data: saidas,
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Criar gráfico da semana
+        function criarGraficoSemana(dados) {
+            if (!dados || dados.length === 0) {
+                console.warn('Dados da semana vazios');
+                return;
+            }
+            
+            const ctx = document.getElementById('chartSemana');
+            if (!ctx) return;
+            
+            // Destruir gráfico anterior se existir
+            if (chartSemana) {
+                chartSemana.destroy();
+            }
+            
+            const labels = dados.map(item => item[0] || 'N/A');
+            const acessos = dados.map(item => item[1] || 0);
+            
+            chartSemana = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total de Acessos',
+                        data: acessos,
+                        backgroundColor: [
+                            '#2563eb', '#059669', '#d97706', '#dc2626', 
+                            '#7c3aed', '#0891b2', '#be123c'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Criar gráfico de tendências
+        function criarGraficoTendencias(dados) {
+            if (!dados || dados.length === 0) {
+                console.warn('Dados de tendências vazios');
+                return;
+            }
+            
+            const ctx = document.getElementById('chartTendencias');
+            if (!ctx) return;
+            
+            // Destruir gráfico anterior se existir
+            if (chartTendencias) {
+                chartTendencias.destroy();
+            }
+            
+            const labels = dados.map(item => {
+                try {
+                    return new Date(item[0]).toLocaleDateString('pt-BR');
+                } catch (e) {
+                    return item[0] || 'N/A';
+                }
+            });
+            const acessos = dados.map(item => item[1] || 0);
+            
+            chartTendencias = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Acessos Diários',
+                        data: acessos,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Criar gráfico de departamentos
+        function criarGraficoDepartamentos(dados) {
+            if (!dados || dados.length === 0) {
+                console.warn('Dados de departamentos vazios');
+                // Tentar buscar dados de departamentos da análise de padrões
+                return;
+            }
+            
+            const ctx = document.getElementById('chartDepartamentos');
+            if (!ctx) return;
+            
+            // Destruir gráfico anterior se existir
+            if (chartDepartamentos) {
+                chartDepartamentos.destroy();
+            }
+            
+            const labels = dados.map(item => item[0] || 'N/A');
+            const valores = dados.map(item => item[1] || 0);
+            
+            chartDepartamentos = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: [
+                            '#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Exibir relatório de produtividade
+        function exibirRelatorioProdutividade(dados) {
+            const container = document.getElementById('tabelaProdutividade');
+            
+            if (!container) {
+                console.error('Container tabelaProdutividade não encontrado');
+                return;
+            }
+            
+            if (!dados || !Array.isArray(dados) || dados.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Nenhum dado encontrado para o período selecionado.</p>';
+                return;
+            }
+            
+            try {
+                let html = `
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Funcionário</th>
+                                <th>Departamento</th>
+                                <th>Total Acessos</th>
+                                <th>Entradas</th>
+                                <th>Saídas</th>
+                                <th>Primeira Entrada</th>
+                                <th>Última Saída</th>
+                                <th>Pontualidade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                dados.forEach((funcionario, index) => {
+                    try {
+                        // Validar que temos pelo menos os campos básicos
+                        if (!funcionario || funcionario.length < 11) {
+                            console.warn(`Dados incompletos para funcionário ${index}:`, funcionario);
+                            return;
+                        }
+                        
+                        const numeroRegistro = funcionario[0] || 'N/A';
+                        const nome = funcionario[1] || 'N/A';
+                        const departamento = funcionario[2] || 'N/A';
+                        const cargo = funcionario[3] || 'N/A';
+                        const totalAcessos = funcionario[4] || 0;
+                        const entradas = funcionario[5] || 0;
+                        const saidas = funcionario[6] || 0;
+                        const primeiraEntrada = funcionario[7] ? (typeof funcionario[7] === 'string' ? funcionario[7] : String(funcionario[7])) : 'N/A';
+                        const ultimaSaida = funcionario[8] ? (typeof funcionario[8] === 'string' ? funcionario[8] : String(funcionario[8])) : 'N/A';
+                        const pontualidadeEntrada = funcionario[9] ? (parseFloat(funcionario[9]) * 100).toFixed(1) : '0.0';
+                        const pontualidadeSaida = funcionario[10] ? (parseFloat(funcionario[10]) * 100).toFixed(1) : '0.0';
+                        
+                        html += `
+                            <tr>
+                                <td>
+                                    <strong>${nome}</strong><br>
+                                    <small class="text-muted">${numeroRegistro}</small>
+                                </td>
+                                <td>${departamento}</td>
+                                <td><span class="badge bg-primary">${totalAcessos}</span></td>
+                                <td><span class="badge bg-success">${entradas}</span></td>
+                                <td><span class="badge bg-danger">${saidas}</span></td>
+                                <td>${primeiraEntrada}</td>
+                                <td>${ultimaSaida}</td>
+                                <td>
+                                    <div class="small">
+                                        Entrada: <span class="badge ${parseFloat(pontualidadeEntrada) >= 80 ? 'bg-success' : 'bg-warning'}">${pontualidadeEntrada}%</span><br>
+                                        Saída: <span class="badge ${parseFloat(pontualidadeSaida) >= 80 ? 'bg-success' : 'bg-warning'}">${pontualidadeSaida}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } catch (rowError) {
+                        console.error(`Erro ao processar linha ${index}:`, rowError, funcionario);
+                    }
+                });
+                
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao exibir relatório:', error);
+                container.innerHTML = '<p class="text-center text-danger">Erro ao processar dados do relatório. Verifique o console para mais detalhes.</p>';
+            }
+        }
+        
+        // Exportar relatório
+        async function exportarRelatorio() {
+            try {
+                const dataInicio = document.getElementById('dataInicio').value;
+                const dataFim = document.getElementById('dataFim').value;
+                const departamento = document.getElementById('departamento').value;
+                
+                const response = await fetch('/api/analytics/exportar-excel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tipo: 'produtividade',
+                        data_inicio: dataInicio,
+                        data_fim: dataFim,
+                        departamento: departamento
+                    })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `relatorio_produtividade_${dataInicio}_a_${dataFim}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    mostrarSucesso('Relatório exportado com sucesso!');
+                } else {
+                    mostrarErro('Erro ao exportar relatório');
+                }
+            } catch (error) {
+                mostrarErro('Erro ao exportar relatório: ' + error.message);
+            }
+        }
+        
+        // Funções auxiliares
+        function mostrarErro(mensagem) {
+            const container = document.getElementById('messageContainer');
+            if (!container) return;
+            
+            // Limpar mensagens anteriores
+            container.innerHTML = '';
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${mensagem}`;
+            container.appendChild(errorDiv);
+            
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        function mostrarSucesso(mensagem) {
+            const container = document.getElementById('messageContainer');
+            if (!container) return;
+            
+            // Limpar mensagens anteriores
+            container.innerHTML = '';
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${mensagem}`;
+            container.appendChild(successDiv);
+            
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

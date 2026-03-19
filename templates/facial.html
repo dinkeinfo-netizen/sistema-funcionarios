@@ -196,6 +196,57 @@
             100% { transform: scale(1); }
         }
         
+        /* Indicadores de iluminação */
+        .lighting-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 10;
+        }
+        
+        .lighting-good {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .lighting-poor {
+            background-color: #f59e0b;
+            color: white;
+        }
+        
+        .lighting-very-poor {
+            background-color: #ef4444;
+            color: white;
+        }
+        
+        .lighting-tips {
+            background-color: #1f2937;
+            color: #f9fafb;
+            border: 1px solid #374151;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .lighting-tips h6 {
+            color: #fbbf24;
+            margin-bottom: 8px;
+        }
+        
+        .lighting-tips ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .lighting-tips li {
+            margin-bottom: 4px;
+        }
+        
         .buttons-section {
             margin: 20px 0;
             text-align: center;
@@ -339,6 +390,12 @@
                     <span id="faceDetectionText">Aguardando...</span>
                 </div>
                 
+                <!-- Indicador de Iluminação -->
+                <div class="lighting-indicator" id="lightingIndicator" style="display: none;">
+                    <i class="fas fa-lightbulb me-1"></i>
+                    <span id="lightingText">Boa iluminação</span>
+                </div>
+                
                 <!-- Botão de Permissão da Câmera (visível quando necessário) -->
                 <div id="cameraPermission" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; text-align: center;">
                     <i class="fas fa-lock fa-2x mb-3"></i>
@@ -360,6 +417,17 @@
                     <i class="fas fa-clock me-2"></i>
                     <span id="timerText">3</span>
                 </div>
+            </div>
+            
+            <!-- Dicas para Ambientes Escuros -->
+            <div class="lighting-tips" id="lightingTips" style="display: none;">
+                <h6><i class="fas fa-lightbulb me-2"></i>Dicas para Melhorar o Reconhecimento</h6>
+                <ul>
+                    <li>Posicione-se em frente a uma fonte de luz</li>
+                    <li>Evite ficar de costas para janelas ou luzes</li>
+                    <li>Mantenha o rosto bem iluminado e visível</li>
+                    <li>Remova óculos escuros ou chapéus que cubram o rosto</li>
+                </ul>
             </div>
             
             <!-- Botões de Controle -->
@@ -562,17 +630,25 @@
             document.getElementById('currentDate').textContent = now.toLocaleDateString('pt-BR');
         }
         
+        // Função para detectar dispositivo móvel
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
+                   /MacIntel/.test(navigator.platform) && navigator.maxTouchPoints > 1;
+        }
+        
         // Função para inicializar câmera
         async function inicializarCamera() {
             try {
                 cameraStatus.className = 'camera-status warning';
                 cameraStatus.innerHTML = '<i class="fas fa-camera me-2"></i>Iniciando câmera...';
                 
+                // Sempre usar câmera frontal em dispositivos móveis, ou câmera padrão em desktop
                 const constraints = {
                     video: {
                         width: { ideal: 480, max: 640 },
                         height: { ideal: 360, max: 480 },
-                        facingMode: 'user',
+                        facingMode: isMobileDevice() ? 'user' : { ideal: 'user' },
                         frameRate: { ideal: 15, max: 30 }
                     }
                 };
@@ -610,11 +686,26 @@
             }
             
             try {
+                // Obter configuração atual da câmera
+                const currentSettings = videoElement.srcObject?.getVideoTracks()[0]?.getSettings();
+                const currentFacingMode = currentSettings?.facingMode;
+                
+                // Alternar entre frontal (user) e traseira (environment)
+                // Em dispositivos móveis, sempre usar frontal por padrão
+                let newFacingMode;
+                if (isMobileDevice()) {
+                    // Em mobile, sempre usar frontal, mas permitir alternar se o usuário quiser
+                    newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                } else {
+                    // Em desktop, alternar normalmente
+                    newFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+                }
+                
                 const constraints = {
                     video: {
                         width: { ideal: 480, max: 640 },
                         height: { ideal: 360, max: 480 },
-                        facingMode: videoElement.srcObject.getVideoTracks()[0].getSettings().facingMode === 'user' ? 'environment' : 'user',
+                        facingMode: newFacingMode,
                         frameRate: { ideal: 15, max: 30 }
                     }
                 };
@@ -733,6 +824,11 @@
                 
                 const data = await response.json();
                 
+                // Atualizar indicador de iluminação se disponível
+                if (data.lighting_info) {
+                    atualizarIndicadorIluminacao(data.lighting_info);
+                }
+                
                 // Verificar se há face detectada
                 if (data.success && data.detecao.tem_face) {
                     // Face detectada - verificar se está bem posicionada
@@ -834,6 +930,59 @@
                 } else {
                     indicator.style.display = 'none';
                 }
+            }
+        }
+        
+        // Função para atualizar indicador de iluminação
+        function atualizarIndicadorIluminacao(lightingInfo) {
+            const indicator = document.getElementById('lightingIndicator');
+            const text = document.getElementById('lightingText');
+            const tips = document.getElementById('lightingTips');
+            
+            if (!indicator || !text) return;
+            
+            // Determinar nível de iluminação
+            let level, message, showTips, icon;
+            
+            if (lightingInfo.brightness < 30) {
+                level = 'lighting-very-poor';
+                message = 'Muito escuro';
+                icon = 'fas fa-moon';
+                showTips = true;
+            } else if (lightingInfo.brightness < 60) {
+                level = 'lighting-poor';
+                message = 'Pouca luz';
+                icon = 'fas fa-lightbulb';
+                showTips = true;
+            } else {
+                level = 'lighting-good';
+                message = 'Boa iluminação';
+                icon = 'fas fa-sun';
+                showTips = false;
+            }
+            
+            // Atualizar indicador
+            indicator.className = `lighting-indicator ${level}`;
+            text.innerHTML = `<i class="${icon} me-1"></i>${message}`;
+            indicator.style.display = 'block';
+            
+            // Mostrar/esconder dicas
+            if (tips) {
+                tips.style.display = showTips ? 'block' : 'none';
+            }
+            
+            // Adicionar animação para mudanças de estado
+            indicator.style.animation = 'pulse 0.5s ease-in-out';
+            setTimeout(() => {
+                indicator.style.animation = '';
+            }, 500);
+        }
+        
+        // Função para mostrar progresso de detecção
+        function mostrarProgressoDetecao(etapa, total) {
+            const statusText = document.getElementById('autoStatusText');
+            if (statusText) {
+                statusText.textContent = `Processando... ${etapa}/${total}`;
             }
         }
         

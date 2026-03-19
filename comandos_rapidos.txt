@@ -1,0 +1,63 @@
+==========================================
+COMANDOS RÁPIDOS - Sistema de Usuários
+==========================================
+
+1. EXECUTAR SQL NO BANCO DE DADOS:
+-----------------------------------
+docker exec -i acesso_mysql mysql -u app_user -papp_password acesso_funcionarios_db < criar_usuario_portaria.sql
+
+OU (método alternativo):
+docker cp criar_usuario_portaria.sql acesso_mysql:/tmp/
+docker exec acesso_mysql mysql -u app_user -papp_password acesso_funcionarios_db -e "source /tmp/criar_usuario_portaria.sql"
+docker exec acesso_mysql rm /tmp/criar_usuario_portaria.sql
+
+
+2. REINICIAR O SISTEMA:
+----------------------
+docker-compose restart acesso_flask
+
+OU:
+docker restart acesso_flask
+
+
+3. EXECUTAR TUDO DE UMA VEZ (SCRIPT AUTOMÁTICO):
+-----------------------------------------------
+./ativar_sistema_usuarios.sh
+
+
+4. VERIFICAR SE O USUÁRIO FOI CRIADO:
+------------------------------------
+docker exec acesso_mysql mysql -u app_user -papp_password acesso_funcionarios_db -e "SELECT id, username, nome_completo, role, ativo FROM admin_users;"
+
+
+5. VERIFICAR LOGS DO FLASK:
+--------------------------
+docker logs acesso_flask --tail 50
+
+
+6. TESTAR ACESSO:
+----------------
+- Admin: http://SEU_IP:8444/admin
+  Usuário: admin
+  Senha: admin123
+
+- Portaria: http://SEU_IP:8444/admin/login
+  Usuário: portaria
+  Senha: portaria123
+
+
+==========================================
+CREDENCIAIS:
+==========================================
+
+ADMIN:
+  Usuário: admin
+  Senha: admin123
+  Acesso: Completo
+
+PORTARIA:
+  Usuário: portaria
+  Senha: portaria123
+  Acesso: Apenas relatório online
+
+==========================================

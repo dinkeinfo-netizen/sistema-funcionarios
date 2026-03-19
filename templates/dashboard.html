@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap JS para dropdown -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -102,6 +104,48 @@
             border-radius: 10px;
             border: none;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        #alertas {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        #alertas .alert {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        #alertas .alert:hover {
+            transform: translateX(5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        #alertas .alert-warning {
+            border-left-color: var(--warning-color);
+            background-color: #fff3cd;
+        }
+        
+        #alertas .alert-info {
+            border-left-color: var(--secondary-color);
+            background-color: #d1ecf1;
+        }
+        
+        #alertas .alert-danger {
+            border-left-color: var(--danger-color);
+            background-color: #f8d7da;
         }
         
         .loading {
@@ -137,74 +181,31 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(44, 62, 80, 0.95); backdrop-filter: blur(10px);">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-building me-2"></i>
-                Sistema de Acesso
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">
-                    <i class="fas fa-user me-1"></i>
-                    Admin
-                </span>
-                <a class="btn btn-outline-light btn-sm" href="/admin/logout">
-                    <i class="fas fa-sign-out-alt me-1"></i>
-                    Sair
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
+    <div class="container-fluid" style="margin-top: 0; padding-top: 0;">
         <div class="row">
             <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse" style="min-height: calc(100vh - 76px);">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/funcionarios">
-                                <i class="fas fa-users me-2"></i>
-                                Funcionários
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/relatorios">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Relatórios
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin/configuracoes">
-                                <i class="fas fa-cog me-2"></i>
-                                Configurações
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/acesso-facial">
-                                <i class="fas fa-camera me-2"></i>
-                                Acesso Facial
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">
-                                <i class="fas fa-home me-2"></i>
-                                Página Principal
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-
+            <div class="col-md-3 col-lg-2 d-none d-md-block p-0">
+                {% include 'components/sidebar.html' %}
+            </div>
+            
             <!-- Main Content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <main class="col-md-9 col-lg-10 offset-md-3 offset-lg-2 px-md-4">
+                <!-- Breadcrumbs -->
+                {% block breadcrumbs %}
+                {% include 'components/breadcrumbs.html' %}
+                <script>
+                    document.querySelector('.breadcrumb').innerHTML += `
+                        <li class="breadcrumb-item"><a href="{{ url_for('admin') }}">Admin</a></li>
+                        <li class="breadcrumb-item active">Dashboard</li>
+                    `;
+                </script>
+                {% endblock %}
+                
+                <!-- Botão para abrir sidebar no mobile -->
+                <button class="btn btn-primary d-md-none mb-3" onclick="toggleSidebar()" style="position: fixed; top: 70px; left: 10px; z-index: 997;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2 text-white">
                         <i class="fas fa-tachometer-alt me-2"></i>
@@ -363,7 +364,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Variáveis globais
         let acessosChart, tiposChart;
@@ -388,7 +388,12 @@
                     updateStatistics(data.stats);
                     updateCharts(data.charts);
                     updateRecentActivity(data.recent_activity);
-                    updateAlertas(data.alertas);
+                    
+                    // Debug: verificar alertas recebidos
+                    console.log('📊 Alertas recebidos:', data.alertas);
+                    console.log('📊 Total de alertas:', data.alertas ? data.alertas.length : 0);
+                    
+                    updateAlertas(data.alertas || []);
                 } else {
                     console.error('Erro ao carregar dados:', data.message);
                 }
@@ -518,22 +523,49 @@
         // Atualizar alertas
         function updateAlertas(alertas) {
             const container = document.getElementById('alertas');
-            container.innerHTML = '';
-            
-            if (alertas.length === 0) {
-                container.innerHTML = '<div class="text-center text-muted">Nenhum alerta no momento</div>';
+            if (!container) {
+                console.error('❌ Container de alertas não encontrado!');
                 return;
             }
             
-            alertas.forEach(alerta => {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = `alert alert-${alerta.tipo} alert-custom mb-2`;
-                alertDiv.innerHTML = `
-                    <i class="fas fa-${alerta.icon} me-2"></i>
-                    <strong>${alerta.titulo}</strong><br>
-                    <small>${alerta.mensagem}</small>
-                `;
-                container.appendChild(alertDiv);
+            container.innerHTML = '';
+            
+            // Verificar se alertas é válido
+            if (!alertas || !Array.isArray(alertas)) {
+                console.warn('⚠️ Alertas não é um array válido:', alertas);
+                container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-check-circle me-2"></i>Nenhum alerta no momento</div>';
+                return;
+            }
+            
+            if (alertas.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-check-circle me-2"></i>Nenhum alerta no momento</div>';
+                return;
+            }
+            
+            console.log(`✅ Atualizando ${alertas.length} alerta(s)`);
+            
+            // Ordenar alertas por prioridade (danger > warning > info)
+            const prioridade = { 'danger': 3, 'warning': 2, 'info': 1 };
+            alertas.sort((a, b) => (prioridade[b.tipo] || 0) - (prioridade[a.tipo] || 0));
+            
+            alertas.forEach((alerta, index) => {
+                try {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = `alert alert-${alerta.tipo} alert-custom mb-3`;
+                    alertDiv.style.animationDelay = `${index * 0.1}s`;
+                    alertDiv.innerHTML = `
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-${alerta.icon || 'info-circle'} me-2 mt-1" style="font-size: 1.2rem;"></i>
+                            <div class="flex-grow-1">
+                                <strong>${alerta.titulo || 'Alerta'}</strong><br>
+                                <small class="text-muted">${alerta.mensagem || ''}</small>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(alertDiv);
+                } catch (error) {
+                    console.error('Erro ao criar alerta:', error, alerta);
+                }
             });
         }
 
@@ -550,7 +582,7 @@
 
         // Auto-refresh
         function startAutoRefresh() {
-            refreshInterval = setInterval(loadDashboardData, 5000); // 5 segundos para atualização mais frequente
+            refreshInterval = setInterval(loadDashboardData, 30000); // 30 segundos para atualização mais frequente
         }
         
         // Função para forçar atualização imediata
