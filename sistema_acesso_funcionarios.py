@@ -6314,7 +6314,7 @@ def gerar_pdf_relatorio_funcionario(relatorio):
 @portaria_or_admin_required
 def relatorio_online_sistema_real():
     """Página do relatório online que consome dados do sistema real"""
-    return render_template('relatorio_online_sistema_real.html')
+    return render_template('relatorio_online_personalizado.html')
 
 @app.route('/api/debug-ip')
 def debug_ip():

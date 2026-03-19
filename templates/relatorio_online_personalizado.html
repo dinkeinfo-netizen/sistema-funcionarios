@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Presença - Sistema Real</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --header-bg: #eef2f3;
+            --text-color: #333;
+            --present-color: #2e7d32;
+            /* Verde escuro */
+            --absent-color: #ef6c00;
+            /* Laranja escuro */
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+
+        .container-fluid {
+            max-width: 98%;
+            margin: 0 auto;
+        }
+
+        /* Header Estilo Referência */
+        .page-header {
+            background-color: var(--header-bg);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .page-info {
+            padding: 0 5px;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Layout em Colunas */
+        .report-grid {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .report-column {
+            background: white;
+            border-radius: 0;
+            padding: 0;
+            flex: 1;
+            min-height: 80vh;
+        }
+
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 10px 0;
+            margin-bottom: 5px;
+        }
+
+        .title-presentes {
+            color: var(--present-color);
+        }
+
+        .title-saidos {
+            color: var(--absent-color);
+        }
+
+        /* Tabela Estilo Limpo */
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: transparent;
+            border-bottom: 2px solid var(--border-color);
+            color: #333;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            text-transform: none;
+        }
+
+        .table tbody td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* Status bar inferior discreta */
+        .status-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 5px 20px;
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            color: #888;
+            z-index: 1000;
+        }
+
+        /* Countdowns e Badges */
+        .count-badge {
+            font-weight: normal;
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-left: 5px;
+        }
+
+        /* Esconder elementos desnecessários da versão anterior */
+        #loading-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+        }
+
+        .btn-back-floating {
+            position: fixed;
+            top: 20px;
+            right: 25px;
+            z-index: 1001;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Botão Voltar Discreto -->
+    <div class="btn-back-floating">
+        <a href="/admin" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Sair do Relatório
+        </a>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Relatório de Presença</h1>
+        </div>
+
+        <div class="page-info">
+            Lista de funcionários presentes e que saíram hoje.
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div id="content-container">
+            <div class="row g-4">
+                <!-- Coluna Presentes -->
+                <div class="col-lg-7">
+                    <div class="column-title title-presentes">
+                        Funcionários Presentes
+                        <span class="count-badge">(<span id="count-presentes">0</span>)</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Registro</th>
+                                    <th>Nome</th>
+                                    <th>Departamento</th>
+                                    <th style="width: 120px;">Última Entrada</th>
+                                </tr>
+                            </thead>
+                            <tbody id="presentes-tbody">
+                                <!-- Dados via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Coluna Saídos -->
+                <div class="col-lg-5">
+                    <div class="column-title title-saidos">
+                        Funcionários que Saíram
+                        <span class="count-badge">(<span id="count-saidos">0</span>)</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Registro</th>
+                                    <th>Nome</th>
+                                    <th>Departamento</th>
+                                    <th style="width: 120px;">Última Saída</th>
+                                </tr>
+                            </thead>
+                            <tbody id="saidos-tbody">
+                                <!-- Dados via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mensagem de Erro -->
+        <div id="error-container" style="display: none;" class="mt-4">
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span id="error-message-text"></span>
+            </div>
+        </div>
+
+        <!-- Loading Discrete -->
+        <div id="loading-container" class="text-center">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Footer -->
+    <div class="status-footer">
+        <div>
+            <i class="fas fa-sync-alt me-1"></i>
+            Próxima atualização em <span id="countdown">10</span>s
+        </div>
+        <div>
+            <span id="current-date">--/--/----</span> | <span id="current-time">--:--:--</span>
+        </div>
+        <div>
+            Última atualização: <span id="last-update">--:--:--</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let countdown = 10;
+        let carregandoDados = false;
+
+        async function carregarDados() {
+            if (carregandoDados) return;
+            carregandoDados = true;
+
+            try {
+                const response = await fetch('/api/relatorio-online-data');
+                const data = await response.json();
+
+                if (data.error) {
+                    mostrarErro(data.error);
+                    return;
+                }
+
+                document.getElementById('count-presentes').textContent = data.total_presentes || 0;
+                document.getElementById('count-saidos').textContent = data.total_saidos || 0;
+
+                updateTable('presentes-tbody', data.presentes || []);
+                updateTable('saidos-tbody', data.saidos || []);
+
+                document.getElementById('loading-container').style.display = 'none';
+                document.getElementById('error-container').style.display = 'none';
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
+
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('loading-container').style.display = 'none';
+            } finally {
+                carregandoDados = false;
+            }
+        }
+
+        function updateTable(tbodyId, data) {
+            const tbody = document.getElementById(tbodyId);
+            tbody.innerHTML = '';
+
+            data.forEach(func => {
+                const row = document.createElement('tr');
+                if (tbodyId === 'presentes-tbody') {
+                    row.innerHTML = `
+                        <td>${func.numero_registro || ''}</td>
+                        <td>${func.nome || ''}</td>
+                        <td>${func.departamento || ''}</td>
+                        <td>${func.ultima_entrada || ''}</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>${func.numero_registro || ''}</td>
+                        <td>${func.nome || ''}</td>
+                        <td>${func.departamento || ''}</td>
+                        <td>${func.ultima_saida || ''}</td>
+                    `;
+                }
+                tbody.appendChild(row);
+            });
+        }
+
+        function mostrarErro(mensagem) {
+            document.getElementById('error-message-text').textContent = mensagem;
+            document.getElementById('error-container').style.display = 'block';
+            document.getElementById('loading-container').style.display = 'none';
+        }
+
+        function atualizarCountdown() {
+            const el = document.getElementById('countdown');
+            if (el) el.textContent = countdown;
+            if (countdown <= 0) {
+                countdown = 10;
+                carregarDados();
+            } else {
+                countdown--;
+            }
+        }
+
+        function atualizarRelogio() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString('pt-BR');
+            document.getElementById('current-date').textContent = now.toLocaleDateString('pt-BR');
+        }
+
+        setInterval(atualizarCountdown, 1000);
+        setInterval(atualizarRelogio, 1000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarDados();
+            atualizarRelogio();
+        });
+    </script>
+</body>
+
+</html>
