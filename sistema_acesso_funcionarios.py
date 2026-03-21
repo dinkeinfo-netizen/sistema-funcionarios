@@ -38,7 +38,7 @@ from reportlab.lib import colors
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
-CORS(app)
+CORS(app, origins=os.getenv('CORS_ORIGINS', 'https://localhost:8444').split(','))
 
 # Configurar timezone para Brasil
 import os
@@ -275,7 +275,7 @@ def get_data_atual():
 
 # Configurações de sessão segura
 app.config.update(
-    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SECURE=os.getenv('FLASK_ENV', 'development') == 'production',
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=timedelta(hours=2)
@@ -458,11 +458,7 @@ def hash_password(password):
 def verify_password(stored_password, provided_password):
     """Verifica se a senha está correta"""
     try:
-        # Para desenvolvimento, aceitar senhas simples
-        if stored_password == provided_password:
-            return True
-        
-        # Verificação PBKDF2 (para produção)
+        # Verificação PBKDF2 segura
         if len(stored_password) > 64:
             salt = stored_password[:64]
             stored_pwdhash = stored_password[64:]
@@ -478,17 +474,13 @@ def login_required(f):
     """Decorator para proteger rotas administrativas"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print(f"DEBUG: Verificando sessão para {request.endpoint}")
-        print(f"DEBUG: Session data: {dict(session)}")
         
         if 'admin_logged_in' not in session or not session['admin_logged_in']:
-            print(f"DEBUG: Sessão inválida, redirecionando para login")
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Acesso negado. Faça login.', 'redirect': '/admin/login'}), 401
             flash('Você precisa fazer login para acessar esta área.', 'warning')
             return redirect(url_for('admin_login'))
         
-        print(f"DEBUG: Sessão válida, permitindo acesso")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -1820,17 +1812,14 @@ def obter_estatisticas_gerais():
         print("DEBUG: Executando query de funcionários")
         cursor.execute("SELECT COUNT(*) FROM funcionarios WHERE ativo = TRUE")
         total_funcionarios = cursor.fetchone()[0]
-        print(f"DEBUG: Total funcionários: {total_funcionarios}")
         
         print("DEBUG: Executando query de acessos hoje")
         cursor.execute("SELECT COUNT(*) FROM acessos_funcionarios WHERE data_acesso = CURDATE()")
         acessos_hoje = cursor.fetchone()[0]
-        print(f"DEBUG: Acessos hoje: {acessos_hoje}")
         
         print("DEBUG: Executando query de acessos ontem")
         cursor.execute("SELECT COUNT(*) FROM acessos_funcionarios WHERE data_acesso = DATE_SUB(CURDATE(), INTERVAL 1 DAY)")
         acessos_ontem = cursor.fetchone()[0]
-        print(f"DEBUG: Acessos ontem: {acessos_ontem}")
         
         # Funcionários mais ativos hoje
         cursor.execute("""
@@ -1878,13 +1867,11 @@ def obter_estatisticas_gerais():
             'departamentos_ativos': departamentos_ativos
         }
         
-        print(f"DEBUG: Resultado final: {resultado}")
         return resultado
         
     except Exception as e:
         print(f"DEBUG: Erro ao obter estatísticas: {e}")
         import traceback
-        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         return None
 
 def obter_analise_padroes(data_inicio, data_fim):
@@ -3520,7 +3507,6 @@ def gerar_relatorio_diario():
         data_fim = request.args.get('data_fim', get_data_atual().strftime('%Y-%m-%d'))
         formato = request.args.get('formato', 'json')
         
-        print(f"DEBUG: Parâmetros - data_inicio: {data_inicio}, data_fim: {data_fim}, formato: {formato}")
         
         conn = get_simple_connection()
         cursor = conn.cursor(dictionary=True)
@@ -3718,7 +3704,6 @@ def listar_funcionarios_relatorio():
         """)
         
         funcionarios = cursor.fetchall()
-        print(f"DEBUG: Encontrados {len(funcionarios)} funcionários")
         cursor.close()
         conn.close()
         
@@ -4524,30 +4509,53 @@ def admin_login():
             
             user = cursor.fetchone()
             
-            print(f"DEBUG LOGIN: Usuário buscado: {username}")
-            print(f"DEBUG LOGIN: Usuário encontrado: {user is not None}")
             if user:
-                print(f"DEBUG LOGIN: Username: {user[0]}, Nome: {user[2]}")
-                if role_exists:
-                    print(f"DEBUG LOGIN: Role: {user[3]}")
-                print(f"DEBUG LOGIN: Verificando senha...")
-                senha_valida = verify_password(user[1], password)
-                print(f"DEBUG LOGIN: Senha válida: {senha_valida}")
+                pass
             
+            # Verificar bloqueio por tentativas excessivas
+            if user:
+                import datetime as _dt
+                cursor.execute("""
+                    SELECT tentativas_login, bloqueado_ate
+                    FROM admin_users WHERE username = %s
+                """, (username,))
+                lock_info = cursor.fetchone()
+                if lock_info:
+                    tentativas, bloqueado_ate = lock_info
+                    if bloqueado_ate and hasattr(bloqueado_ate, 'replace'):
+                        if _dt.datetime.now() < bloqueado_ate:
+                            cursor.close(); conn.close()
+                            return render_template('admin_login.html',
+                                error=f'Conta bloqueada. Tente novamente mais tarde.')
+
+            # Verificar bloqueio por tentativas excessivas
+            if user:
+                import datetime as _dt
+                cursor.execute("""
+                    SELECT tentativas_login, bloqueado_ate
+                    FROM admin_users WHERE username = %s
+                """, (username,))
+                lock_info = cursor.fetchone()
+                if lock_info:
+                    tentativas, bloqueado_ate = lock_info
+                    if bloqueado_ate and hasattr(bloqueado_ate, 'replace'):
+                        if _dt.datetime.now() < bloqueado_ate:
+                            cursor.close(); conn.close()
+                            return render_template('admin_login.html',
+                                error=f'Conta bloqueada. Tente novamente mais tarde.')
+
             if user and verify_password(user[1], password):
-                print(f"DEBUG LOGIN: Login bem-sucedido! Criando sessão...")
                 session['admin_logged_in'] = True
                 session['admin_username'] = user[0]
                 session['admin_nome'] = user[2]
                 session['admin_role'] = user[3] if role_exists and len(user) > 3 else 'admin'  # Adicionar role na sessão
                 session['admin_id'] = 1
                 
-                print(f"DEBUG LOGIN: Sessão criada: {dict(session)}")
                 
-                # Atualizar último login
+                # Atualizar último login e zerar tentativas
                 cursor.execute("""
                     UPDATE admin_users 
-                    SET ultimo_login = NOW() 
+                    SET ultimo_login = NOW(), tentativas_login = 0, bloqueado_ate = NULL
                     WHERE username = %s
                 """, (username,))
                 
@@ -4561,18 +4569,42 @@ def admin_login():
                     'ip': request.remote_addr
                 })
                 
-                print(f"DEBUG LOGIN: Redirecionando... Role: {session.get('admin_role')}")
                 # Redirecionar baseado no role
                 if session.get('admin_role') == 'portaria':
-                    print(f"DEBUG LOGIN: Redirecionando para relatório online")
                     return redirect(url_for('relatorio_online_sistema_real'))
                 else:
-                    print(f"DEBUG LOGIN: Redirecionando para admin")
                     return redirect(url_for('admin'))
             else:
-                print(f"DEBUG LOGIN: Login falhou - usuário ou senha inválidos")
                 cursor.close()
                 conn.close()
+                # Incrementar tentativas e bloquear se necessário
+                if user:
+                    cursor.execute("""
+                        UPDATE admin_users 
+                        SET tentativas_login = tentativas_login + 1,
+                            bloqueado_ate = CASE 
+                                WHEN tentativas_login + 1 >= 5 
+                                THEN DATE_ADD(NOW(), INTERVAL 30 MINUTE) 
+                                ELSE bloqueado_ate 
+                            END
+                        WHERE username = %s
+                    """, (username,))
+                    conn.commit()
+                cursor.close(); conn.close()
+                # Incrementar tentativas e bloquear se necessário
+                if user:
+                    cursor.execute("""
+                        UPDATE admin_users 
+                        SET tentativas_login = tentativas_login + 1,
+                            bloqueado_ate = CASE 
+                                WHEN tentativas_login + 1 >= 5 
+                                THEN DATE_ADD(NOW(), INTERVAL 30 MINUTE) 
+                                ELSE bloqueado_ate 
+                            END
+                        WHERE username = %s
+                    """, (username,))
+                    conn.commit()
+                cursor.close(); conn.close()
                 return render_template('admin_login.html', 
                                     error='Usuário ou senha inválidos')
                 
@@ -6634,9 +6666,6 @@ def api_estatisticas_gerais():
     try:
         print("DEBUG: API api_estatisticas_gerais chamada")
         stats = obter_estatisticas_gerais()
-        print(f"DEBUG: Stats retornado: {stats}")
-        print(f"DEBUG: Type of stats: {type(stats)}")
-        print(f"DEBUG: Bool of stats: {bool(stats)}")
         if stats:
             print("DEBUG: Stats é truthy, retornando sucesso")
             return jsonify({'success': True, 'data': stats})
@@ -6644,9 +6673,7 @@ def api_estatisticas_gerais():
             print("DEBUG: Stats é falsy, retornando erro")
             return jsonify({'success': False, 'message': 'Erro ao obter estatísticas'})
     except Exception as e:
-        print(f"DEBUG: Exceção na API: {e}")
         import traceback
-        print(f"DEBUG: Traceback da API: {traceback.format_exc()}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/analytics/analise-padroes', methods=['GET'])
@@ -6824,4 +6851,4 @@ if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 8082))
     
     print(f"Sistema iniciado em http://{host}:{port}")
-    app.run(host=host, port=port, debug=True) 
+    app.run(host=host, port=port, debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true') 

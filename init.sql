@@ -193,7 +193,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 -- Inserir administrador padrão (senha: admin123)
 INSERT INTO admin_users (username, password_hash, nome_completo, email) VALUES 
-('admin', '483a6b228dc77d100ca71fa11c3cf2b7651b0da154cf157da545f9b5a6942c960b2e0b415afe24abf17b5e2e4565f943dae1ee5fc1f6bdf3030410dde5700f5e', 'Administrador Sistema', 'admin@empresa.com')
+('admin', 'af4f1fe2ab2d537000599b7afcb444ff4df8201a6fae20db1c788863dc969e9d91dfb85985f41710f29d8df845054356ba3433aa69dc237261e8c652cd6f66ea', 'Administrador Sistema', 'admin@empresa.com')
 ON DUPLICATE KEY UPDATE nome_completo = VALUES(nome_completo);
 
 -- Inserir funcionários de exemplo
