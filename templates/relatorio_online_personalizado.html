@@ -152,10 +152,31 @@
             z-index: 2000;
         }
 
-        /* Botão sair no header */
-        .btn-header-action {
-            padding: 4px 12px;
-            font-size: 0.8rem;
+        /* Estilos para ordenação */
+        th.sortable {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        th.sortable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .sort-icon {
+            font-size: 0.7rem;
+            margin-left: 5px;
+            color: #ccc;
+        }
+
+        th.sorted-asc .sort-icon::before {
+            content: "\f0de";
+            color: var(--text-color);
+        }
+
+        th.sorted-desc .sort-icon::before {
+            content: "\f0dd";
+            color: var(--text-color);
         }
     </style>
 </head>
@@ -186,13 +207,21 @@
                         <span class="count-badge">(<span id="count-presentes">0</span>)</span>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm" id="table-presentes">
                             <thead>
                                 <tr>
-                                    <th style="width: 80px;">Registro</th>
-                                    <th>Nome</th>
-                                    <th>Departamento</th>
-                                    <th style="width: 120px;">Última Entrada</th>
+                                    <th class="sortable" onclick="handleSort('presentes', 'numero_registro')" style="width: 80px;">
+                                        Registro<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('presentes', 'nome')">
+                                        Nome<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('presentes', 'departamento')">
+                                        Departamento<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('presentes', 'ultima_entrada')" style="width: 140px;">
+                                        Última Entrada<i class="fas fa-sort sort-icon"></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="presentes-tbody">
@@ -209,13 +238,21 @@
                         <span class="count-badge">(<span id="count-saidos">0</span>)</span>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm" id="table-saidos">
                             <thead>
                                 <tr>
-                                    <th style="width: 80px;">Registro</th>
-                                    <th>Nome</th>
-                                    <th>Departamento</th>
-                                    <th style="width: 120px;">Última Saída</th>
+                                    <th class="sortable" onclick="handleSort('saidos', 'numero_registro')" style="width: 80px;">
+                                        Registro<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('saidos', 'nome')">
+                                        Nome<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('saidos', 'departamento')">
+                                        Departamento<i class="fas fa-sort sort-icon"></i>
+                                    </th>
+                                    <th class="sortable" onclick="handleSort('saidos', 'ultima_saida')" style="width: 140px;">
+                                        Última Saída<i class="fas fa-sort sort-icon"></i>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="saidos-tbody">
@@ -261,6 +298,17 @@
     <script>
         let countdown = 10;
         let carregandoDados = false;
+        
+        // Estado da ordenação
+        let sortConfig = {
+            presentes: { column: 'ultima_entrada', direction: 'desc' },
+            saidos: { column: 'ultima_saida', direction: 'desc' }
+        };
+        
+        let rawData = {
+            presentes: [],
+            saidos: []
+        };
 
         async function carregarDados() {
             if (carregandoDados) return;
@@ -278,8 +326,10 @@
                 document.getElementById('count-presentes').textContent = data.total_presentes || 0;
                 document.getElementById('count-saidos').textContent = data.total_saidos || 0;
 
-                updateTable('presentes-tbody', data.presentes || []);
-                updateTable('saidos-tbody', data.saidos || []);
+                rawData.presentes = data.presentes || [];
+                rawData.saidos = data.saidos || [];
+
+                atualizarTabelas();
 
                 document.getElementById('loading-container').style.display = 'none';
                 document.getElementById('error-container').style.display = 'none';
@@ -293,28 +343,78 @@
             }
         }
 
-        function updateTable(tbodyId, data) {
-            const tbody = document.getElementById(tbodyId);
-            tbody.innerHTML = '';
+        function handleSort(type, column) {
+            const config = sortConfig[type];
+            if (config.column === column) {
+                config.direction = config.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                config.column = column;
+                config.direction = 'asc';
+            }
+            atualizarTabelas();
+        }
 
-            data.forEach(func => {
+        function atualizarTabelas() {
+            renderTable('presentes', rawData.presentes);
+            renderTable('saidos', rawData.saidos);
+            updateSortVisuals();
+        }
+
+        function renderTable(type, data) {
+            const tbodyId = type + '-tbody';
+            const tbody = document.getElementById(tbodyId);
+            const config = sortConfig[type];
+            
+            // Clonar e ordenar dados
+            let sortedData = [...data].sort((a, b) => {
+                let valA = a[config.column] || '';
+                let valB = b[config.column] || '';
+                
+                // Tratar números de registro como números
+                if (config.column === 'numero_registro') {
+                    valA = parseInt(valA) || 0;
+                    valB = parseInt(valB) || 0;
+                }
+
+                if (valA < valB) return config.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return config.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            tbody.innerHTML = '';
+            sortedData.forEach(func => {
                 const row = document.createElement('tr');
-                if (tbodyId === 'presentes-tbody') {
+                if (type === 'presentes') {
                     row.innerHTML = `
                         <td>${func.numero_registro || ''}</td>
                         <td>${func.nome || ''}</td>
                         <td>${func.departamento || ''}</td>
-                        <td>${func.ultima_entrada || ''}</td>
+                        <td><span class="badge bg-light text-dark">${func.ultima_entrada || ''}</span></td>
                     `;
                 } else {
                     row.innerHTML = `
                         <td>${func.numero_registro || ''}</td>
                         <td>${func.nome || ''}</td>
                         <td>${func.departamento || ''}</td>
-                        <td>${func.ultima_saida || ''}</td>
+                        <td><span class="badge bg-light text-muted">${func.ultima_saida || ''}</span></td>
                     `;
                 }
                 tbody.appendChild(row);
+            });
+        }
+
+        function updateSortVisuals() {
+            ['presentes', 'saidos'].forEach(type => {
+                const table = document.getElementById('table-' + type);
+                const config = sortConfig[type];
+                
+                table.querySelectorAll('th').forEach(th => {
+                    th.classList.remove('sorted-asc', 'sorted-desc');
+                    const onclick = th.getAttribute('onclick');
+                    if (onclick && onclick.includes(`'${config.column}'`)) {
+                        th.classList.add(config.direction === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                    }
+                });
             });
         }
 

@@ -6478,9 +6478,9 @@ def relatorio_online_data():
                     'ultima_saida': str(dados['hora'])
                 })
         
-        # Ordenar por nome
-        presentes.sort(key=lambda x: x['nome'])
-        sairam.sort(key=lambda x: x['nome'])
+        # Ordenar por tempo decrescente (mais recentes primeiro)
+        presentes.sort(key=lambda x: x['ultima_entrada'], reverse=True)
+        sairam.sort(key=lambda x: x['ultima_saida'], reverse=True)
         
         resultado = {
             'success': True,
